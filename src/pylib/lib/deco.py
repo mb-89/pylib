@@ -1,0 +1,39 @@
+import asyncio
+import functools
+
+
+def maybe_async(func):
+    """Allow a function to be either awaited or called.
+
+    There is some overhead in the sync-path for every call.
+    Dont use for small, often called syn fns.
+
+    Define:
+    @maybe_async
+    async def my_function(x):
+        return 1
+
+    Call:
+    result = my_function(10)       # sync
+    result = await my_function(10) # async
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            asyncio.get_running_loop()
+            sync = False
+        except RuntimeError:
+            sync = True
+        if not sync:
+            return func(*args, **kwargs)
+        else:
+
+            async def asynciowrap():
+                coro = func(*args, **kwargs)
+                res = await coro
+                return res
+
+            return asyncio.run(asynciowrap())
+
+    return wrapper

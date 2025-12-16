@@ -1,0 +1,41 @@
+[project]
+name = "pylib"
+version = "0.0.1"
+description = "common python code"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "jupyterlab>=4.5.1",
+    "typer>=0.20.0",
+]
+
+[project.scripts]
+pylib = "pylib.cli:run"
+
+[project.gui-scripts]
+
+[tool.setuptools]
+include-package-data = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+default-groups = []
+
+[dependency-groups]
+dev = [
+    "nbval>=0.11.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "./tests -v --capture=sys --cov=pylib --cov-report term-missing --nbval-lax ./src/pylib/doc"
+testpaths = ["./tests","src/doc"]
+markers = [
+    "smoke: marks tests as part of smoke-testing",
+    "repeat: used to repeat the last commandline call with pytest -m repeat."
+]
