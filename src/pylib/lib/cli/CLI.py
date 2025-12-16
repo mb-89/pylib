@@ -35,6 +35,7 @@ class CLI:
     ta = ta
     to = to
     ant = ant
+    Tp = typer
 
     def __init__(
         self, name: str = "", url: str = "", example_rel2root=None, rootdir_path=None
@@ -75,7 +76,7 @@ class CLI:
             else:
                 try:
                     self.tp(argv)
-                except SystemExit as e:
+                except SystemExit as _:
                     pass
         finally:
             sys.argv = argv
@@ -227,12 +228,12 @@ def install_callback():
         f"uvx {packagename} # or only '{packagename}'",
         "",
         "To clone the code and work on it locally:",
-        f"git clone {packageurl}",
+        f"git clone git+{packageurl}",
         f"cd {packagename}",
         f"uv run {packagename}",
         "",
         "Some subfunctions might require more setup. These functions will prompt for it on first use.",
-        "For example, run 'uv run pylib dev install' to install dev dependencies.",
+        "For example, run 'uv run $PKG$ dev install' to install dev dependencies.",
         "",
         "See uv docu (https://docs.astral.sh/uv/guides) for further options"
         " like running specific versions, branches, updating installations, etc...",
@@ -265,7 +266,7 @@ def example_callback():
             "",
             "The example browser requires jupyterlab.",
             "If you see this message, jupyterlab was not found.",
-            "you can install it by running uv pylib dev install",
+            "you can install it by running uv $PKG$ dev install",
             "",
             "in case you are running this script via uvx, replace",
             "'uvx'",

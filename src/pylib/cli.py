@@ -1,6 +1,5 @@
 from pylib.lib.cli import CLI as _CLI
 from pathlib import Path
-import sys
 
 name = "pylib"
 URL = "https://code.siemens.com/shs-te-mp-plm-varc/pylib"
@@ -10,6 +9,7 @@ tp = _CLI.tp
 ta = _CLI.ta
 to = _CLI.to
 ant = _CLI.ant
+Tp = _CLI.Tp
 
 
 class CLI(_CLI):
@@ -25,6 +25,7 @@ class CLI(_CLI):
         dst: ant[Path, ta(help="Path where the new package shall be created")],
         name: ant[str, ta(help="Name of the new package")],
         imp: ant[bool, to("-imp", help="import from pylib instead of inject.")] = False,
+        force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
     ):
         """Create a package that contains all the boilerplate provided by pylib.
 
@@ -32,7 +33,17 @@ class CLI(_CLI):
         Pass the -imp flag to import instead.
         """
 
-        # TODO
+        dstdir = dst / name
+        if not force:
+            overwrite = Tp.confirm(
+                f"creating package @ {dstdir}, overriding contents. ok?"
+            )
+            if not overwrite:
+                raise Tp.Abort()
+
+        from pylib import api
+
+        api.create_package(dstdir, imp)
 
         print(f"created package @ {dst / name}.")
         print(f"use:\n'cd {dst / name}'\n'uv run {name}'\nto run it.")
@@ -44,8 +55,18 @@ class CLI(_CLI):
     ):
         """Injects the pylib code into the given path."""
 
-        # TODO
-        pass
+        if not force:
+            overwrite = Tp.confirm(
+                f"integrating lib into @ {dst}, overriding contents. ok?"
+            )
+            if not overwrite:
+                raise Tp.Abort()
+
+        from pylib import api
+
+        api.inject_lib(dst)
+
+        print(f"injected lib @ {dst}.")
 
     def extract_lib(
         self,
@@ -73,3 +94,7 @@ def run(args=None):
 
     """
     CLI().run(args)
+
+
+if __name__ == "__main__":
+    run()

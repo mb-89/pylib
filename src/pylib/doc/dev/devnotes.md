@@ -7,5 +7,7 @@ Pylib itself shall be pylib-based and provide examples for all functions
 Pylib shall be able to extract itself from a path that it was injected in, to get back changes that might be incorporated.
 
 integrated features:
-- [TODO] cli based on typer
-- [TODO] example browser / tests based on ipython notebooks and jupyterlab
+- [DONE] cli based on typer
+- [DONE] example browser / tests based on ipython notebooks and jupyterlab
+- [TODO] written docu generator: extract docstrings from cli
+- [TODO] written docu generator: generate mdbook?

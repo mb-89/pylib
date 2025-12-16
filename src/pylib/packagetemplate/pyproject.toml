@@ -1,7 +1,7 @@
 [project]
-name = "pylib"
+name = "$PKG$"
 version = "0.0.1"
-description = "common python code"
+description = "$TODO$"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pylib = "pylib.cli:run"
+$PKG$ = "$PKG$.cli:run"
 
 [project.gui-scripts]
 
@@ -25,9 +25,6 @@ build-backend = "hatchling.build"
 [tool.uv]
 default-groups = []
 
-[tool.ruff]
-extend-exclude = ["packagetemplate"]
-
 [dependency-groups]
 dev = [
     "nbval>=0.11.0",
@@ -37,7 +34,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "./tests -v --capture=sys --cov=pylib --cov-report term-missing --nbval-lax ./src/pylib/doc"
+addopts = "./tests -v --capture=sys --cov=$PKG$ --cov-report term-missing --nbval-lax ./src/$PKG$/doc"
 testpaths = ["./tests","src/doc"]
 markers = [
     "smoke: marks tests as part of smoke-testing",
