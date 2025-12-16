@@ -40,6 +40,7 @@ class CLI(_CLI):
     def inject_lib(
         self,
         dst: ant[Path, ta(help="Path to inject into.")],
+        force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
     ):
         """Injects the pylib code into the given path."""
 
@@ -52,6 +53,7 @@ class CLI(_CLI):
         dst: ant[Path, ta(help="Path to extract into.")] = (
             Path(__file__) / ".." / "lib"
         ).resolve(),
+        force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
     ):
         """Injects the pylib code into the given path."""
 
