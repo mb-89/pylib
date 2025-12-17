@@ -7,7 +7,7 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
     cp.create_package(dstdir, imp, run)
 
 
-def inject_lib(dstdir: Path, name: str):
+def inject_lib(dstdir: Path):
     from pylib.fns import inject_lib as il
 
-    il.inject_lib(dstdir, name)
+    il.inject_lib(dstdir)

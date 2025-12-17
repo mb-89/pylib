@@ -1,18 +1,89 @@
 from pathlib import Path
 import shutil
 import os
+import re
+import sys
+import subprocess
+import json
 
 
-def inject_lib(dstdir: Path):
+def inject_lib(dstdir: Path, imp: bool = False):
+    ignorelist = ["__pycache__", r"\."]
     name = dstdir.stem
-    libsrc = Path(__file__) / ".." / ".." / "lib"
-    libdst = dstdir / "src" / name / "lib"
-    shutil.copytree(
-        libsrc,
-        libdst,
-        dirs_exist_ok=True,
-        ignore=shutil.ignore_patterns(*["__pycache__", ".ipynb_checkpoints"]),
-    )
+
+    # check if the source is editable. if so, we are a local import
+    cmd = [sys.executable, "-m", "uv", "pip", "show", "pylib"]
+    fnd = subprocess.run(cmd, capture_output=True).stdout.decode("utf-8")
+    epl = "Editable project location"
+    if epl in fnd:
+        epl = re.findall(f"{epl}:(.*?)\n", fnd)[0].strip()
+    else:
+        epl = None
+
+    if imp:  # we import, no copying -------------------------------
+        if epl is not None:
+            cmd = [
+                sys.executable,
+                "-m",
+                "uv",
+                "add",
+                "--editable",
+                epl.replace("\\", "/"),
+            ]
+            subprocess.run(cmd, cwd=dstdir)
+            for x in dstdir.rglob("*"):
+                if any(y in str(x) for y in ignorelist):
+                    continue
+                if x.is_file():
+                    data = open(x, "r", encoding="utf-8").read()
+                    pat = f"from {name}.lib."
+                    if pat in data:
+                        print(x)
+                        data = data.replace(pat, "from pylib.lib.")
+                        open(x, "w", encoding="utf-8").write(data)
+
+    else:  # we copy/inject --------------------------------------------
+        libsrc = Path(__file__) / ".." / ".." / "lib"
+        libdst = dstdir / "src" / name / "lib"
+        shutil.copytree(
+            libsrc,
+            libdst,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(*["__pycache__", ".ipynb_checkpoints"]),
+        )
+
+        # replace $PKG$
+        for x in dstdir.rglob("*"):
+            if any(y in str(x) for y in ignorelist):
+                continue
+            if x.is_file():
+                # print(x)
+                data = open(x, "r", encoding="utf-8").read()
+                if "$PKG$" in data:
+                    # print(x)
+                    data = data.replace("$PKG$", name)
+                    open(x, "w", encoding="utf-8").write(data)
+            if "$PKG$" not in x.stem:
+                continue
+            x.rename(x.with_stem(x.stem.replace("$PKG$", name)))
+
+        # in this case, also store a ref to the source so we can update later.
+        # in case of an import, we can easily update via uv.
+        # in case of an injection, we need to do it ourselves.
+        cmd = [
+            sys.executable,
+            "-m",
+            "uv",
+            "add",
+            "uv",
+        ]  # add uv, so we can update later
+        subprocess.run(cmd, cwd=dstdir)
+        if epl is None:
+            pass  # TODO (how do we re-inject from a remote src?)
+        else:
+            open(libdst / "src.json", "w").write(
+                json.dumps({"type": "editable", "path": epl})
+            )
 
     try:
         os.symlink(dstdir / "src" / name / "doc" / "lib_doc", libdst / "doc")

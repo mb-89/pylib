@@ -151,6 +151,7 @@ class CLI:
         scmd("setup")(self.dev_install)
         scmd("test")(self.dev_test)
         scmd("lint")(self.dev_lint)
+        scmd("lib_update")(self.dev_update)
 
         self.tp.add_typer(stp, name="dev")
 
@@ -192,6 +193,30 @@ class CLI:
             ],
             cwd=rd,
         )
+
+    def dev_update(self):
+        """update the pylib code used by this package."""
+        libdir = Path(__file__) / ".." / ".."
+        src = libdir / "src.json"
+        if not src.is_file():
+            pass  # TODO: what do we do here?
+        else:
+            srcdata = json.loads(open(src, "r").read())
+            if srcdata["type"] == "editable":
+                dstdir = libdir / ".." / ".." / ".."
+                dstdir = dstdir.resolve()
+                cmd = [
+                    sys.executable,
+                    "-m",
+                    "uv",
+                    "run",
+                    "pylib",
+                    "inject-lib",
+                    str(dstdir).replace("\\", "/"),
+                    "-f",
+                ]
+
+                subprocess.call(cmd, cwd=srcdata["path"])
 
 
 def _get_cache_args() -> deque:

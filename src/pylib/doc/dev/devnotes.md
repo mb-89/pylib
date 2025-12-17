@@ -11,3 +11,7 @@ integrated features:
 - [DONE] example browser / tests based on ipython notebooks and jupyterlab
 - [TODO] written docu generator: extract docstrings from cli
 - [TODO] written docu generator: generate mdbook?
+- [TODO] add imp from git mode -> later, after git access restore
+- [TODO] add logging
+- [DONE] test injection into existing project
+- [TODO] add update fn for injected code (saves source and tries to pull again)
