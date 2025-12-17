@@ -14,7 +14,7 @@ Tp = _CLI.Tp
 
 class CLI(_CLI):
     def __init__(self):
-        super().__init__(name, URL, examples)
+        super().__init__(name, URL, examples,rootdir_path=Path(__file__)/ "..")
 
         self.addCmd(self.echo)
 

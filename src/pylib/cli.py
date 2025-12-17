@@ -14,7 +14,7 @@ Tp = _CLI.Tp
 
 class CLI(_CLI):
     def __init__(self):
-        super().__init__(name, URL, examples)
+        super().__init__(name, URL, examples, rootdir_path=Path(__file__) / "..")
 
         self.addCmd(self.create_package)
         self.addCmd(self.inject_lib)
@@ -26,6 +26,7 @@ class CLI(_CLI):
         name: ant[str, ta(help="Name of the new package")],
         imp: ant[bool, to("-imp", help="import from pylib instead of inject.")] = False,
         force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
+        run: ant[bool, to("-r", help="run the package via uv after creation")] = False,
     ):
         """Create a package that contains all the boilerplate provided by pylib.
 
@@ -43,10 +44,11 @@ class CLI(_CLI):
 
         from pylib import api
 
-        api.create_package(dstdir, imp)
-
-        print(f"created package @ {dst / name}.")
-        print(f"use:\n'cd {dst / name}'\n'uv run {name}'\nto run it.")
+        api.create_package(dstdir, imp, run)
+        if not run:
+            print(f"created package @ {dst / name}.")
+        else:
+            print(f"created package @ {dst / name}. Running it in separate process.")
 
     def inject_lib(
         self,
