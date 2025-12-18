@@ -5,6 +5,9 @@ import re
 import sys
 import subprocess
 import json
+from pylib.lib.log import getlogger
+
+log = getlogger()
 
 
 def inject_lib(dstdir: Path, imp: bool = False):
@@ -88,6 +91,6 @@ def inject_lib(dstdir: Path, imp: bool = False):
     try:
         os.symlink(dstdir / "src" / name / "doc" / "lib_doc", libdst / "doc")
     except WindowsError:
-        print(
-            "[WARNING] symlink to lib docu couldnt be created. try running as admin. This only influences the documentation."
+        log.warning(
+            "symlink to lib docu couldnt be created. try running as admin. This only influences the documentation."
         )

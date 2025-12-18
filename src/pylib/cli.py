@@ -1,5 +1,6 @@
 from pylib.lib.cli import CLI as _CLI
 from pathlib import Path
+from pylib.lib.log import getlogger
 
 name = "pylib"
 URL = "https://code.siemens.com/shs-te-mp-plm-varc/pylib"
@@ -10,6 +11,7 @@ ta = _CLI.ta
 to = _CLI.to
 ant = _CLI.ant
 Tp = _CLI.Tp
+log = getlogger()
 
 
 class CLI(_CLI):
@@ -46,9 +48,9 @@ class CLI(_CLI):
 
         api.create_package(dstdir, imp, run)
         if not run:
-            print(f"created package @ {dst / name}.")
+            log.info(f"created package @ {dst / name}.")
         else:
-            print(f"created package @ {dst / name}. Running it in separate process.")
+            log.info(f"created package @ {dst / name}. Running it in separate process.")
 
     def inject_lib(
         self,
@@ -68,7 +70,7 @@ class CLI(_CLI):
 
         api.inject_lib(dst)
 
-        print(f"injected lib @ {dst}.")
+        log.info(f"injected lib @ {dst}.")
 
     def extract_lib(
         self,

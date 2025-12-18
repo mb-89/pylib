@@ -1,5 +1,6 @@
 from $PKG$.lib.cli import CLI as _CLI
 from pathlib import Path
+from $PKG$.lib.log import getlogger
 
 name = "$PKG$"
 URL = "$TODO$"
@@ -10,7 +11,7 @@ ta = _CLI.ta
 to = _CLI.to
 ant = _CLI.ant
 Tp = _CLI.Tp
-
+log = getlogger()
 
 class CLI(_CLI):
     def __init__(self):
@@ -22,7 +23,7 @@ class CLI(_CLI):
         """Echo sys.argv."""
         import sys
 
-        print(sys.argv)
+        log.info(sys.argv)
 
 
 def run(args=None):

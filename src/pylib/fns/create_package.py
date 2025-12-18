@@ -28,10 +28,8 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
         if any(y in str(x) for y in ignorelist):
             continue
         if x.is_file():
-            # print(x)
             data = open(x, "r", encoding="utf-8").read()
             if "$PKG$" in data:
-                # print(x)
                 data = data.replace("$PKG$", name)
                 open(x, "w", encoding="utf-8").write(data)
         if "$PKG$" not in x.stem:

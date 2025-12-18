@@ -15,5 +15,4 @@ def test_repeat(pytestconfig):
     isdebugger = tr is not None and "coverage" not in str(tr)
     if ("repeat" not in markers_arg) and not isdebugger:
         return
-    print(tr)
     cli.run(["history", "0"])

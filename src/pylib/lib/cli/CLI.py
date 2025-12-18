@@ -1,7 +1,5 @@
 import typer
 import importlib.metadata
-from rich import print
-from rich.panel import Panel
 import sys
 from pathlib import Path
 import json
@@ -11,6 +9,7 @@ from typing_extensions import Annotated as ant
 import os
 import subprocess
 import site
+from pylib.lib.cli.print import print, panel
 
 ta = typer.Argument
 to = typer.Option
@@ -263,13 +262,11 @@ def install_callback():
         "See uv docu (https://docs.astral.sh/uv/guides) for further options"
         " like running specific versions, branches, updating installations, etc...",
     ]
-    print(
-        Panel(
-            "\n".join(txt),
-            title="Installing this script locally",
-            title_align="left",
-            width=80,
-        )
+    panel(
+        "\n".join(txt),
+        title="Installing this script locally",
+        title_align="left",
+        width=80,
     )
 
 
@@ -281,7 +278,7 @@ def example_callback():
 
     if p is None:
         pnl = ["", "This module provides no examples. Abort."]
-        print(Panel("\n".join(pnl), width=80, title="Examples", title_align="left"))
+        panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         return
 
     try:
@@ -302,11 +299,11 @@ def example_callback():
             "Opening examples in explorer as backup...",
         ]
 
-        print(Panel("\n".join(pnl), width=80, title="Examples", title_align="left"))
+        panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         os.startfile(p)
 
     pnl = ["", "starting jupyter lab.", "press ctrl+c to abort."]
-    print(Panel("\n".join(pnl), width=80, title="Jupyter lab", title_align="left"))
+    panel("\n".join(pnl), width=80, title="Jupyter lab", title_align="left")
 
     ju = Path(site.getsitepackages()[0]) / "Scripts" / "jupyter"
     index_path = p / "000_index.md"
