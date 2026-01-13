@@ -10,6 +10,10 @@ import os
 import subprocess
 import site
 from pylib.lib.cli.print import print, panel
+from pylib.lib.log import getlogger
+import re
+
+log = getlogger()
 
 ta = typer.Argument
 to = typer.Option
@@ -151,6 +155,7 @@ class CLI:
         scmd("test")(self.dev_test)
         scmd("lint")(self.dev_lint)
         scmd("lib_update")(self.dev_update)
+        scmd("mkdoc")(self.dev_mkdoc)
 
         self.tp.add_typer(stp, name="dev")
 
@@ -216,6 +221,70 @@ class CLI:
                 ]
 
                 subprocess.call(cmd, cwd=srcdata["path"])
+
+    def dev_mkdoc(self):
+        """create the documentation for the package."""
+        import click
+
+        parent = click.get_current_context(silent=True).parent
+        while parent.parent is not None:
+            parent = parent.parent
+        modname = parent.info_name.split()[-1]
+
+        log.info(f"creating doc for <{modname}>...")
+
+        targets = [[modname]]
+        results = {}
+        while targets:
+            target = targets.pop(0)
+
+            res = subprocess.run(
+                [sys.executable, "-m", "uv", "run"] + target + ["-h"],
+                capture_output=True,
+            )
+            resstr = res.stdout.decode("utf-8")
+            reserr = res.stderr.decode("utf-8")
+
+            Errpatterns = ["+- Error", "┌─  Error"]
+            cmdpatterns = ["+- Commands", "┌─  Commands"]
+
+            for x in Errpatterns:
+                if x not in reserr:
+                    results[" ".join(target)] = resstr
+                    log.info(f"found <{target}>...")
+                else:
+                    continue
+            for cmdp in cmdpatterns:
+                if cmdp in resstr:
+                    cmds = resstr.split(cmdp)[-1]
+                    subcmds = re.findall(r"\r\n\|\s+(.*?)\s", cmds)
+                    for sc in subcmds:
+                        targets.append(target + [sc])
+
+        md = [f"# {modname} commandline interface"]
+
+        for k in sorted(results.keys()):
+            v = results[k]
+            lvl = len(k.split()) + 1
+            md.append("#" * lvl + f" {k}")
+            md.append(f"```\n{v.replace('\r\n', '\n').replace('\n\n', '\n')}\n```")
+
+        dst = (Path(__file__) / ".." / ".." / ".." / "doc").resolve()
+
+        if not dst.is_dir():
+            log.error(f"dst folder ({dst}) does not exist. Abort.")
+            exit(1)
+        dst = dst / "001_cmd.md"
+        open(dst, "wb").write(("\n".join(md)).encode("utf-8"))
+        log.info(f"written cmdline docu -> {dst}.")
+
+        try:
+            subprocess.run(["mdbook", "-V"], capture_output=True)
+        except BaseException:
+            log.error(
+                "mdbook not found. Install via <winget install --id=Rustlang.mdBook -e>"
+            )
+            exit(-1)
 
 
 def _get_cache_args() -> deque:

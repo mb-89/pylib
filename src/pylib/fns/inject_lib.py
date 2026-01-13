@@ -66,6 +66,10 @@ def inject_lib(dstdir: Path, imp: bool = False):
                     # print(x)
                     data = data.replace("$PKG$", name)
                     open(x, "w", encoding="utf-8").write(data)
+                if "from pylib.lib." in data:
+                    # print(x)
+                    data = data.replace("from pylib.lib.", f"from {name}.lib.")
+                    open(x, "w", encoding="utf-8").write(data)
             if "$PKG$" not in x.stem:
                 continue
             x.rename(x.with_stem(x.stem.replace("$PKG$", name)))
