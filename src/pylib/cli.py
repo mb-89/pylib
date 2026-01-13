@@ -3,7 +3,7 @@ from pathlib import Path
 from pylib.lib.log import getlogger
 
 name = "pylib"
-URL = "https://code.siemens.com/shs-te-mp-plm-varc/pylib"
+URL = "https://<URL>/pylib"
 examples = "doc"
 
 tp = _CLI.tp

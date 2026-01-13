@@ -1,7 +1,7 @@
 # ideas / usecases
 the pylib shall provide commonly used code that can either be
 - imported via "from pylib import api" or similar
-- injected, in case the target project doesnt allow pylib as a dependency (standalone w/o access to code.siemens, inner src, ...)
+- injected, in case the target project doesnt allow pylib as a dependency (standalone w/o access to repos, inner src, ...)
 Pylib shall provide a function to create a pylib-based project from scratch.
 Pylib itself shall be pylib-based and provide examples for all functions
 Pylib shall be able to extract itself from a path that it was injected in, to get back changes that might be incorporated.
