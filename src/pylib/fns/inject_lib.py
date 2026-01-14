@@ -23,6 +23,9 @@ def inject_lib(dstdir: Path, imp: bool = False):
     else:
         epl = None
 
+    libsrc = Path(__file__) / ".." / ".." / "lib"
+    libdst = dstdir / "src" / name / "lib"
+
     if imp:  # we import, no copying -------------------------------
         if epl is not None:
             cmd = [
@@ -41,13 +44,11 @@ def inject_lib(dstdir: Path, imp: bool = False):
                     data = open(x, "r", encoding="utf-8").read()
                     pat = f"from {name}.lib."
                     if pat in data:
-                        print(x)
+                        #print(x)
                         data = data.replace(pat, "from pylib.lib.")
                         open(x, "w", encoding="utf-8").write(data)
 
     else:  # we copy/inject --------------------------------------------
-        libsrc = Path(__file__) / ".." / ".." / "lib"
-        libdst = dstdir / "src" / name / "lib"
         shutil.copytree(
             libsrc,
             libdst,

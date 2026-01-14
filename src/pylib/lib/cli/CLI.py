@@ -72,8 +72,9 @@ class CLI:
             argv = [x for x in sys.argv[1:]]
         try:
 
-            if any(x in argv for x in ["--library-update"]):
+            if "--library-update" in argv:
                 library_update_callback()
+                argv.remove("--library-update")
 
             if any(x in argv for x in ["-v", "--version"]):
                 version_callback()
@@ -248,6 +249,8 @@ class CLI:
 
         while targets:
             target = targets.pop(0)
+            if "library-update" in target:
+                continue
 
             res = subprocess.run(
                 [sys.executable, "-m", "uv", "run"] + target + ["-h"],
@@ -256,26 +259,30 @@ class CLI:
             resstr = res.stdout.decode("utf-8")
             reserr = res.stderr.decode("utf-8")
 
-            Errpatterns = ["+- Error", "┌─  Error"]
-            cmdpatterns = ["+- Commands", "┌─  Commands"]
+            Errpatterns = ["+- Error", "┌─  Error","┌─ Error"]
+            cmdpatterns = ["+- Commands", "┌─  Commands", "┌─ Commands"]
 
             for x in Errpatterns:
                 if x not in reserr:
                     results[" ".join(target)] = resstr
-                    log.info(f"found <{target}>...")
                 else:
                     continue
             for cmdp in cmdpatterns:
                 if cmdp in resstr:
                     cmds = resstr.split(cmdp)[-1]
-                    subcmds = re.findall(r"\r\n\|\s+(.*?)\s", cmds)
+                    subcmds = re.findall(r"\r\n(\│|\|)\s+(.*?)\s", cmds)
+                    if subcmds:
+                        log.info(f"found <{target}>...")    
                     for sc in subcmds:
+                        sc = sc[1]
                         targets.append(target + [sc])
 
         md = [f"# {modname} commandline interface"]
 
         for k in sorted(results.keys()):
             v = results[k]
+            if not v:
+                continue
             lvl = len(k.split()) + 1
             md.append("#" * lvl + f" {k}")
             md.append(f"```\n{v.replace('\r\n', '\n').replace('\n\n', '\n')}\n```")
