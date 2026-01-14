@@ -55,7 +55,9 @@ def inject_lib(dstdir: Path, imp: bool = False):
             ignore=shutil.ignore_patterns(*["__pycache__", ".ipynb_checkpoints"]),
         )
 
-        # replace $PKG$
+        # replace $PKG$ etc
+        from pylib.lib.fns import getversion
+        libversion = getversion()
         for x in dstdir.rglob("*"):
             if any(y in str(x) for y in ignorelist):
                 continue
@@ -70,6 +72,9 @@ def inject_lib(dstdir: Path, imp: bool = False):
                     # print(x)
                     data = data.replace("from pylib.lib.", f"from {name}.lib.")
                     open(x, "w", encoding="utf-8").write(data)
+                if "$INJECTED_VERSION" in data:
+                    data = data.replace("$INJECTED_VERSION", libversion)
+                    open(x, "w", encoding="utf-8").write(data)                    
             if "$PKG$" not in x.stem:
                 continue
             x.rename(x.with_stem(x.stem.replace("$PKG$", name)))

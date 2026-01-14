@@ -9,11 +9,12 @@ from typing_extensions import Annotated as ant
 import os
 import subprocess
 import site
-from pylib.lib.cli.print import print, panel
-from pylib.lib.log import getlogger
 import re
 
-log = getlogger()
+# note: 
+# for any imports from pylib:
+# do them as late as possible, because the cli might patch it before running!
+# (this means: import one line before using it)
 
 ta = typer.Argument
 to = typer.Option
@@ -31,7 +32,7 @@ historic_Flag = False
 
 examplePath = None
 rootdir = None
-
+flag_update_lib = False
 
 class CLI:
     tp = tp
@@ -70,6 +71,10 @@ class CLI:
         if argv is None:
             argv = [x for x in sys.argv[1:]]
         try:
+
+            if any(x in argv for x in ["--library-update"]):
+                library_update_callback()
+
             if any(x in argv for x in ["-v", "--version"]):
                 version_callback()
             elif any(x in argv for x in ["-i", "--install-help"]):
@@ -78,6 +83,8 @@ class CLI:
                 example_callback()
             else:
                 try:
+                    if flag_update_lib:
+                        self.dev_update()
                     self.tp(argv)
                 except SystemExit as _:
                     pass
@@ -143,6 +150,7 @@ class CLI:
 
         # if we are here, print history
         for idx, x in enumerate(args_hist):
+            from pylib.lib.cli.print import print
             print(f"{idx:3d} / {' '.join(x)}")
 
     def _mk_cmd_dev(self):
@@ -199,7 +207,7 @@ class CLI:
         )
 
     def dev_update(self):
-        """update the pylib code used by this package."""
+        """update the pylib code used by this package. Pass the hidden --library-update flag to run it automatically."""
         libdir = Path(__file__) / ".." / ".."
         src = libdir / "src.json"
         if not src.is_file():
@@ -231,10 +239,13 @@ class CLI:
             parent = parent.parent
         modname = parent.info_name.split()[-1]
 
+        from pylib.lib.log import getlogger
+        log = getlogger()
         log.info(f"creating doc for <{modname}>...")
 
         targets = [[modname]]
         results = {}
+
         while targets:
             target = targets.pop(0)
 
@@ -308,7 +319,10 @@ def _set_cached_args(args_dq: deque):
 
 def version_callback():
     version = importlib.metadata.version(packagename)
+    from pylib.lib.cli.print import print
+    from pylib.lib.fns import getversion
     print(version)
+    print(f"lib: {getversion()}")
 
 
 def install_callback():
@@ -331,6 +345,7 @@ def install_callback():
         "See uv docu (https://docs.astral.sh/uv/guides) for further options"
         " like running specific versions, branches, updating installations, etc...",
     ]
+    from pylib.lib.cli.print import panel
     panel(
         "\n".join(txt),
         title="Installing this script locally",
@@ -347,6 +362,7 @@ def example_callback():
 
     if p is None:
         pnl = ["", "This module provides no examples. Abort."]
+        from pylib.lib.cli.print import panel
         panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         return
 
@@ -367,11 +383,12 @@ def example_callback():
             "",
             "Opening examples in explorer as backup...",
         ]
-
+        from pylib.lib.cli.print import panel
         panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         os.startfile(p)
 
     pnl = ["", "starting jupyter lab.", "press ctrl+c to abort."]
+    from pylib.lib.cli.print import panel
     panel("\n".join(pnl), width=80, title="Jupyter lab", title_align="left")
 
     ju = Path(site.getsitepackages()[0]) / "Scripts" / "jupyter"
@@ -383,6 +400,9 @@ def example_callback():
     ]
     subprocess.run(cmd)
 
+def library_update_callback():
+    global flag_update_lib
+    flag_update_lib = True
 
 def noop():
     pass
@@ -413,6 +433,14 @@ def cb(
         callback=noop,
         is_eager=True,
         help="Shows examples",
+    ),
+    library_update: bool = typer.Option(
+        None,
+        "--library-update",
+        callback=noop,
+        is_eager=True,
+        hidden = True,
+        help="pass to update internal pylib before running commands",
     ),
 ):
     pass
