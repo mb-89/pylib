@@ -10,6 +10,7 @@ import os
 import subprocess
 import site
 import re
+from importlib import reload
 
 # note: 
 # for any imports from pylib:
@@ -86,6 +87,21 @@ class CLI:
                 try:
                     if flag_update_lib:
                         self.dev_update()
+                        from pylib.lib.cli.print import print
+                        udl = []
+                        for k,v in sys.modules.items():
+                            if k.startswith("pylib.lib."):
+                                print(f"reloading {k}")
+                                udl.append(v)
+                        from pylib.lib.fns import getversion
+                        print(f"lib version before reload: {getversion()}")
+                        del getversion
+                        for x in udl:
+                            reload(x)
+                        from pylib.lib.fns import getversion
+                        print(f"lib version after reload: {getversion()}")
+                        del getversion
+                        
                     self.tp(argv)
                 except SystemExit as _:
                     pass
@@ -240,7 +256,7 @@ class CLI:
             parent = parent.parent
         modname = parent.info_name.split()[-1]
 
-        from pylib.lib.log import getlogger
+        from pylib.lib.fns import getlogger
         log = getlogger()
         log.info(f"creating doc for <{modname}>...")
 

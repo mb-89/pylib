@@ -24,17 +24,24 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
 
     ignorelist = ["__pycache__", r"\."]
     # replace $PKG$
-    for x in dstdir.rglob("*"):
-        if any(y in str(x) for y in ignorelist):
-            continue
+
+    def repl(file):
         if x.is_file():
             data = open(x, "r", encoding="utf-8").read()
             if "$PKG$" in data:
                 data = data.replace("$PKG$", name)
                 open(x, "w", encoding="utf-8").write(data)
         if "$PKG$" not in x.stem:
-            continue
+            return
         x.rename(x.with_stem(x.stem.replace("$PKG$", name)))
+
+    for x in dstdir.rglob("*"):
+        if any(y in str(x) for y in ignorelist):
+            continue
+        repl(x)
+
+    for x in (dstdir/".vscode").rglob("*"):
+        repl(x)
 
     from . import inject_lib as il
 

@@ -1,19 +1,21 @@
-from $PKG$.lib.cli import CLI as _CLI
 from pathlib import Path
-from $PKG$.lib.log import getlogger
 
 name = "$PKG$"
 URL = "$TODO$"
 examples = "doc"
 
-tp = _CLI.tp
-ta = _CLI.ta
-to = _CLI.to
-ant = _CLI.ant
-Tp = _CLI.Tp
+from $PKG$.lib.fns import getCLIclass
+clic = getCLIclass()
+tp = clic.tp
+ta = clic.ta
+to = clic.to
+ant = clic.ant
+Tp = clic.Tp
+
+from $PKG$.lib.fns import getlogger
 log = getlogger()
 
-class CLI(_CLI):
+class CLI(clic):
     def __init__(self):
         super().__init__(name, URL, examples,rootdir_path=Path(__file__)/ "..")
 

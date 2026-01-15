@@ -5,7 +5,7 @@ import re
 import sys
 import subprocess
 import json
-from pylib.lib.log import getlogger
+from pylib.lib.fns import getlogger
 
 log = getlogger()
 
@@ -42,10 +42,10 @@ def inject_lib(dstdir: Path, imp: bool = False):
                     continue
                 if x.is_file():
                     data = open(x, "r", encoding="utf-8").read()
-                    pat = f"from {name}.lib."
+                    pat = f"{name}.lib."
                     if pat in data:
                         #print(x)
-                        data = data.replace(pat, "from pylib.lib.")
+                        data = data.replace(pat, "pylib.lib.")
                         open(x, "w", encoding="utf-8").write(data)
 
     else:  # we copy/inject --------------------------------------------
@@ -71,7 +71,7 @@ def inject_lib(dstdir: Path, imp: bool = False):
                     open(x, "w", encoding="utf-8").write(data)
                 if "from pylib.lib." in data:
                     # print(x)
-                    data = data.replace("from pylib.lib.", f"from {name}.lib.")
+                    data = data.replace("pylib.lib.", f"{name}.lib.")
                     open(x, "w", encoding="utf-8").write(data)
                 if "$INJECTED_VERSION" in data:
                     data = data.replace("$INJECTED_VERSION", libversion)

@@ -5,3 +5,11 @@ def getversion():
     except ModuleNotFoundError:
         version = "$INJECTED_VERSION"
     return version
+
+def getlogger():
+    from pylib.lib.log import getlogger as gl
+    return gl()
+
+def getCLIclass():
+    from pylib.lib.cli.CLI import CLI
+    return CLI

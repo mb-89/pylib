@@ -1,20 +1,24 @@
-from pylib.lib.cli import CLI as _CLI
+from pylib.lib.fns import getCLIclass
 from pathlib import Path
-from pylib.lib.log import getlogger
+
 
 name = "pylib"
 URL = "https://<URL>/pylib"
 examples = "doc"
 
-tp = _CLI.tp
-ta = _CLI.ta
-to = _CLI.to
-ant = _CLI.ant
-Tp = _CLI.Tp
+
+clic = getCLIclass()
+tp = clic.tp
+ta = clic.ta
+to = clic.to
+ant = clic.ant
+Tp = clic.Tp
+
+from pylib.lib.fns import getlogger
 log = getlogger()
 
 
-class CLI(_CLI):
+class CLI(clic):
     def __init__(self):
         super().__init__(name, URL, examples, rootdir_path=Path(__file__) / "..")
 
