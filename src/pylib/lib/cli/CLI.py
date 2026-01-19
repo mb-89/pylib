@@ -9,7 +9,6 @@ from typing_extensions import Annotated as ant
 import os
 import subprocess
 import site
-import re
 from importlib import reload
 
 # note: 
@@ -20,7 +19,6 @@ from importlib import reload
 ta = typer.Argument
 to = typer.Option
 tp = typer.Typer(
-    no_args_is_help=True,
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 cmd = tp.command
@@ -34,6 +32,7 @@ historic_Flag = False
 examplePath = None
 rootdir = None
 flag_update_lib = False
+flag_default = False
 
 class CLI:
     tp = tp
@@ -68,19 +67,23 @@ class CLI:
     def addCmd(self, cmdfn):
         cmd()(cmdfn)
 
+    def default_fn(self):
+        """
+        This function is called when the package runs with no arguments. 
+        Defaults to the --examples / -x behavior, but can be overridden.
+        """
+        example_callback()
+
     def run(self, argv=None):
         if argv is None:
             argv = [x for x in sys.argv[1:]]
         try:
-
             if "--library-update" in argv:
                 library_update_callback()
                 argv.remove("--library-update")
 
             if any(x in argv for x in ["-v", "--version"]):
                 version_callback()
-            elif any(x in argv for x in ["-i", "--install-help"]):
-                install_callback()
             elif any(x in argv for x in ["-x", "--examples"]):
                 example_callback()
             else:
@@ -101,10 +104,12 @@ class CLI:
                         from pylib.lib.fns import getversion
                         print(f"lib version after reload: {getversion()}")
                         del getversion
-                        
-                    self.tp(argv)
+
+                    self.tp(argv)             
                 except SystemExit as _:
-                    pass
+                    if flag_default: 
+                        self.default_fn()
+                        return     
         finally:
             sys.argv = argv
             if not historic_Flag:
@@ -260,65 +265,10 @@ class CLI:
         log = getlogger()
         log.info(f"creating doc for <{modname}>...")
 
-        targets = [[modname]]
-        results = {}
-
-        while targets:
-            target = targets.pop(0)
-            if "library-update" in target:
-                continue
-
-            res = subprocess.run(
-                [sys.executable, "-m", "uv", "run"] + target + ["-h"],
-                capture_output=True,
-            )
-            resstr = res.stdout.decode("utf-8")
-            reserr = res.stderr.decode("utf-8")
-
-            Errpatterns = ["+- Error", "┌─  Error","┌─ Error"]
-            cmdpatterns = ["+- Commands", "┌─  Commands", "┌─ Commands"]
-
-            for x in Errpatterns:
-                if x not in reserr:
-                    results[" ".join(target)] = resstr
-                else:
-                    continue
-            for cmdp in cmdpatterns:
-                if cmdp in resstr:
-                    cmds = resstr.split(cmdp)[-1]
-                    subcmds = re.findall(r"\r\n(\│|\|)\s+(.*?)\s", cmds)
-                    if subcmds:
-                        log.info(f"found <{target}>...")    
-                    for sc in subcmds:
-                        sc = sc[1]
-                        targets.append(target + [sc])
-
-        md = [f"# {modname} commandline interface"]
-
-        for k in sorted(results.keys()):
-            v = results[k]
-            if not v:
-                continue
-            lvl = len(k.split()) + 1
-            md.append("#" * lvl + f" {k}")
-            md.append(f"```\n{v.replace('\r\n', '\n').replace('\n\n', '\n')}\n```")
-
         dst = (Path(__file__) / ".." / ".." / ".." / "doc").resolve()
 
-        if not dst.is_dir():
-            log.error(f"dst folder ({dst}) does not exist. Abort.")
-            exit(1)
-        dst = dst / "001_cmd.md"
-        open(dst, "wb").write(("\n".join(md)).encode("utf-8"))
-        log.info(f"written cmdline docu -> {dst}.")
-
-        try:
-            subprocess.run(["mdbook", "-V"], capture_output=True)
-        except BaseException:
-            log.error(
-                "mdbook not found. Install via <winget install --id=Rustlang.mdBook -e>"
-            )
-            exit(-1)
+        from pylib.lib.mkdoc import mk
+        mk(modname, dst)
 
 
 def _get_cache_args() -> deque:
@@ -347,36 +297,6 @@ def version_callback():
     print(version)
     print(f"lib: {getversion()}")
 
-
-def install_callback():
-    txt = [
-        "",
-        "There are multiple ways to install this script on your local machine:",
-        "",
-        "To install and run it it as an os-wide tool:",
-        f"uv tool install git+{packageurl} {packagename}",
-        f"uvx {packagename} # or only '{packagename}'",
-        "",
-        "To clone the code and work on it locally:",
-        f"git clone git+{packageurl}",
-        f"cd {packagename}",
-        f"uv run {packagename}",
-        "",
-        "Some subfunctions might require more setup. These functions will prompt for it on first use.",
-        "For example, run 'uv run $PKG$ dev install' to install dev dependencies.",
-        "",
-        "See uv docu (https://docs.astral.sh/uv/guides) for further options"
-        " like running specific versions, branches, updating installations, etc...",
-    ]
-    from pylib.lib.cli.print import panel
-    panel(
-        "\n".join(txt),
-        title="Installing this script locally",
-        title_align="left",
-        width=80,
-    )
-
-
 def example_callback():
     try:
         p = (rootdir / examplePath).resolve()
@@ -396,7 +316,7 @@ def example_callback():
             "",
             "The example browser requires jupyterlab.",
             "If you see this message, jupyterlab was not found.",
-            "you can install it by running uv $PKG$ dev install",
+            "you can install it by running the 'dev install' subcommand.",
             "",
             "in case you are running this script via uvx, replace",
             "'uvx'",
@@ -415,7 +335,7 @@ def example_callback():
     panel("\n".join(pnl), width=80, title="Jupyter lab", title_align="left")
 
     ju = Path(site.getsitepackages()[0]) / "Scripts" / "jupyter"
-    index_path = p / "000_index.md"
+    index_path = p / "README.md"
     cmd = [
         f"{ju.resolve()}",
         "lab",
@@ -427,11 +347,15 @@ def library_update_callback():
     global flag_update_lib
     flag_update_lib = True
 
+def default_callback():
+    global flag_default
+    flag_default = True
+
 def noop():
     pass
 
 
-@tp.callback()
+@tp.callback(invoke_without_command=True)
 def cb(
     version: bool = typer.Option(
         None,
@@ -440,14 +364,6 @@ def cb(
         callback=noop,
         is_eager=True,
         help="Show the version of this script",
-    ),
-    install: bool = typer.Option(
-        None,
-        "--install-help",
-        "-i",
-        callback=noop,
-        is_eager=True,
-        help="Show help on local installation",
     ),
     examples: bool = typer.Option(
         None,
@@ -466,4 +382,5 @@ def cb(
         help="pass to update internal pylib before running commands",
     ),
 ):
-    pass
+    if len(sys.argv) == 1:
+        default_callback()

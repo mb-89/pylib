@@ -1,6 +1,5 @@
 # brief
 $TODO$
-See [doc index](src/$PKG$/doc/000_index.md) for details.
 
 # dependency installation
 ```
@@ -9,18 +8,16 @@ py -m pip install uv
 ```
 
 # Powershell cmds to get started
-These powershell commands run a preview directly from git without
-installing anything. 
+To run this package from local code:
 ```
 powershell
-$url = "$TODO$"
-uvx --from $url $PKG$ -x # show built-in examples and further reading
-uvx --from $url $PKG$ -h # show commandline help
+cd <repo_dir> # repo_dir is the directory that this file is in
+uv run $PKG$ # opens the docu browser with more details
 ```
 
-For details on how to install locally:
+To run this package directly from git without installing anything:
 ```
 powershell
-$url = "$TODO$"
-uvx --from $url $PKG$ -i # show help on local installation and usage of uv
+$url = "git+https://<repo_url>" #repo_url is the url where the git remote is hosted
+uvx --from $url $PKG$ opens the docu browser with more details
 ```

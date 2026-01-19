@@ -99,7 +99,7 @@ def inject_lib(dstdir: Path, imp: bool = False):
             )
 
     try:
-        os.symlink(dstdir / "src" / name / "doc" / "lib_doc", libdst / "doc")
+        os.symlink(dstdir / "src" / name / "doc" / "800_lib_docu", libdst / "doc")
     except WindowsError:
         log.warning(
             "symlink to lib docu couldnt be created. try running as admin. This only influences the documentation."

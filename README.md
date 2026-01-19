@@ -1,6 +1,5 @@
 # brief
 pylib is a library that contains reusable features and boilerplate for python projects.
-See [doc index](src/pylib/doc/000_index.md) for details.
 
 # dependency installation
 ```
@@ -9,18 +8,17 @@ py -m pip install uv
 ```
 
 # Powershell cmds to get started
-These powershell commands run a preview directly from git without
-installing anything. 
+
+To run this package directly from git without installing anything:
 ```
 powershell
-$url = "git+https://<repo_url>"
-uvx --from $url pylib -x # show built-in examples and further reading
-uvx --from $url pylib -h # show commandline help
+$url = "git+https://<repo_url>"     #   repo_url is the url where the git remote is hosted
+uvx --from $url pylib               #   opens the docu browser with more details
 ```
 
-For details on how to install locally:
+To run this package from local code:
 ```
 powershell
-$url = "git+https://<repo_url>"
-uvx --from $url pylib -i # show help on local installation and usage of uv
+cd <repo_dir>                       #   repo_dir is the directory that this file is in
+uv run pylib                        #   opens the docu browser with more details
 ```

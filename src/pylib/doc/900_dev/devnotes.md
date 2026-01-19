@@ -9,7 +9,7 @@ Pylib shall be able to extract itself from a path that it was injected in, to ge
 integrated features:
 - [DONE] cli based on typer
 - [DONE] example browser / tests based on ipython notebooks and jupyterlab
-- [TODO] written docu generator: extract docstrings from cli
+- [DONE] written docu generator: extract docstrings from cli
 - [TODO] written docu generator: generate mdbook?
 - [TODO] add imp from git mode -> later, after git access restore
 - [DONE] add logging
