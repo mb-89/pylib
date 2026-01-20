@@ -3,8 +3,36 @@ import shutil
 import subprocess
 import sys
 
+from pylib.lib.fns import getlogger, getCLI
 
-def create_package(dstdir: Path, imp: bool, run: bool = False):
+log = getlogger()
+cli = getCLI()
+Tp,tp,ta,to,ant = cli.getTyperShortcuts()
+
+
+@cli.cmd
+def create_package(        
+    dst: ant[Path, ta(help="Path where the new package shall be created")],
+    name: ant[str, ta(help="Name of the new package")],
+    imp: ant[bool, to("-imp", help="import from pylib instead of inject.")] = False,
+    force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
+    run: ant[bool, to("-r", help="run the package via uv after creation")] = False,
+    ):
+    """Create a package that contains all the boilerplate provided by pylib.
+
+    By default, this function injects a copy of pylib into the package.
+    Pass the -imp flag to import instead.
+    """
+
+    if not force:
+        overwrite = Tp.confirm(
+            f"creating package @ {dstdir}, overriding contents. ok?"
+        )
+        if not overwrite:
+            raise Tp.Abort()
+
+    dstdir = dst / name
+    
     if dstdir.is_dir():
         shutil.rmtree(dstdir)
     dstdir.mkdir(parents=True, exist_ok=True)
@@ -16,6 +44,7 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
     subprocess.run(cmd, cwd=dst)
 
     # copy packagetemplate
+    # TODO: remove packagetemplate. reverse-construct from pylib instead.
     tplsrc = Path(__file__) / ".." / ".." / "packagetemplate"
     shutil.copytree(tplsrc, dstdir, dirs_exist_ok=True)
 
@@ -26,14 +55,14 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
     # replace $PKG$
 
     def repl(file):
-        if x.is_file():
-            data = open(x, "r", encoding="utf-8").read()
+        if file.is_file():
+            data = open(file, "r", encoding="utf-8").read()
             if "$PKG$" in data:
                 data = data.replace("$PKG$", name)
-                open(x, "w", encoding="utf-8").write(data)
-        if "$PKG$" not in x.stem:
+                open(file, "w", encoding="utf-8").write(data)
+        if "$PKG$" not in file.stem:
             return
-        x.rename(x.with_stem(x.stem.replace("$PKG$", name)))
+        file.rename(file.with_stem(file.stem.replace("$PKG$", name)))
 
     for x in dstdir.rglob("*"):
         if any(y in str(x) for y in ignorelist):
@@ -46,6 +75,11 @@ def create_package(dstdir: Path, imp: bool, run: bool = False):
     from . import inject_lib as il
 
     il.inject_lib(dstdir, imp)
+
+    if not run:
+        log.info(f"created package @ {dst / name}.")
+    else:
+        log.info(f"created package @ {dst / name}. Running it in separate process.")
 
     # test once using uv (displaying -x)
     if run:

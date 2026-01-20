@@ -1,0 +1,19 @@
+from pylib.lib.fns import getCLI
+from pathlib import Path
+
+cli = getCLI()
+Tp,tp,ta,to,ant = cli.getTyperShortcuts()
+
+@cli.cmd
+def extract_lib(
+    self,
+    src: ant[Path, ta(help="Path to extract from.")],
+    dst: ant[Path, ta(help="Path to extract into.")] = (
+        Path(__file__) / ".." / "lib"
+    ).resolve(),
+    force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
+):
+    """Injects the pylib code into the given path."""
+
+    # TODO
+    pass

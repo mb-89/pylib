@@ -5,12 +5,29 @@ import re
 import sys
 import subprocess
 import json
-from pylib.lib.fns import getlogger
+from pylib.lib.fns import getlogger, getCLI
 
 log = getlogger()
+cli = getCLI()
+Tp,tp,ta,to,ant = cli.getTyperShortcuts()
 
+@cli.cmd
+def inject_lib(
+        dst: ant[Path, ta(help="Path to inject into.")],
+        force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
+        imp: ant[bool, to("-f", help="hidden flag, pass to import instead inject",hidden=True)] = False):
 
-def inject_lib(dstdir: Path, imp: bool = False):
+    """Injects the pylib code into the given path."""
+
+    if not force:
+        overwrite = Tp.confirm(
+            f"integrating lib into @ {dst}, overriding contents. ok?"
+        )
+        if not overwrite:
+            raise Tp.Abort()
+
+    dstdir = dst
+    log.info(f"injecting lib @ {dstdir}.")
     ignorelist = ["__pycache__", r"\."]
     name = dstdir.stem
 

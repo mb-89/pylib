@@ -1,3 +1,7 @@
 from pylib import cli
 
-cli.run()
+def main():
+    cli.run()
+
+if __name__ == "__main__":
+    main()

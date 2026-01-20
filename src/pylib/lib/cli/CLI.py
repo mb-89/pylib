@@ -10,6 +10,8 @@ import os
 import subprocess
 import site
 from importlib import reload
+import functools
+import re
 
 # note: 
 # for any imports from pylib:
@@ -21,7 +23,6 @@ to = typer.Option
 tp = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
-cmd = tp.command
 packagename = __package__.split(".")[0]
 packageurl = "<??>"
 
@@ -34,47 +35,35 @@ rootdir = None
 flag_update_lib = False
 flag_default = False
 
+cli_singleton = None
+
+
+def cmd(fn):
+    @functools.wraps(fn)
+    def fnw(*args,**kwargs):
+        return fn(*args,**kwargs)
+    CLI.addCmd(fn)
+    print(f"registered {fn}")
+    return fnw
+
 class CLI:
     tp = tp
     ta = ta
     to = to
     ant = ant
     Tp = typer
+    cmd = cmd
 
-    def __init__(
-        self, name: str = "", url: str = "", example_rel2root=None, rootdir_path=None
-    ):
-        global tp
-        global packagename
-        global packageurl
-        global examplePath
-        global rootdir
+    @staticmethod
+    def getTyperShortcuts():
+        return (CLI.Tp, tp, ta, to, ant)
 
-        if rootdir_path is None:
-            rootdir_path = (
-                Path(__file__) / ".." / ".." / ".."
-            )  # TODO make this more portable.
-        rootdir = rootdir_path
-        self.rootdir = rootdir
-        examplePath = example_rel2root
-        if name:
-            packagename = name
-        if url:
-            packageurl = url
-        self.addCmd(self.history)
-        self._mk_cmd_dev()
+    @staticmethod
+    def run(argv=None):
+        global cli_singleton
+        if cli_singleton is None:
+            cli_singleton = CLI()
 
-    def addCmd(self, cmdfn):
-        cmd()(cmdfn)
-
-    def default_fn(self):
-        """
-        This function is called when the package runs with no arguments. 
-        Defaults to the --examples / -x behavior, but can be overridden.
-        """
-        example_callback()
-
-    def run(self, argv=None):
         if argv is None:
             argv = [x for x in sys.argv[1:]]
         try:
@@ -89,7 +78,7 @@ class CLI:
             else:
                 try:
                     if flag_update_lib:
-                        self.dev_update()
+                        cli_singleton.dev_update()
                         from pylib.lib.cli.print import print
                         udl = []
                         for k,v in sys.modules.items():
@@ -105,15 +94,71 @@ class CLI:
                         print(f"lib version after reload: {getversion()}")
                         del getversion
 
-                    self.tp(argv)             
+                    cli_singleton.tp(argv)             
                 except SystemExit as _:
                     if flag_default: 
-                        self.default_fn()
+                        cli_singleton.default_fn()
                         return     
         finally:
             sys.argv = argv
             if not historic_Flag:
-                self.history(add=True)
+                cli_singleton.history(add=True)
+
+    @staticmethod
+    def setparams(name=None,url=None,exampledir=None,rootdir_path=None):
+        global packagename
+        global packageurl
+        global examplePath
+        global rootdir
+
+        if name:
+            packagename = name
+
+        if url:
+            packageurl = url
+
+        examplePath = exampledir
+        rootdir=rootdir_path
+
+    @staticmethod
+    def importcmds(fn_dir:Path):
+        global cli_singleton
+        if cli_singleton is None:
+            cli_singleton = CLI()    
+
+        #trivial logic first: check if getCLI is in file
+        mods = tuple(x for x in fn_dir.rglob("*.py") if not x.stem.startswith("_") and "getCLI" in open(x,"r").read())
+        #now, dynamically import and extract all cmd instances. add these as commands.
+        for mod in mods:
+            mname = ".".join(mod.resolve().parts[-3:]).replace(".py","")
+            spec=importlib.util.spec_from_file_location(mname , mod)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            sys.modules[mname] = module
+
+    def __init__(
+        self, name: str = "", url: str = "", example_rel2root=None, rootdir_path=None
+    ):
+        if rootdir_path is None:
+            rootdir_path = (
+                Path(__file__) / ".." / ".." / ".."
+            )  # TODO make this more portable.
+        self.setparams(name=name,url=url,exampledir=example_rel2root,rootdir_path=rootdir_path)
+        self.rootdir = rootdir
+        
+        self.addCmd(self.history)
+        self._mk_cmd_dev()
+
+    @staticmethod
+    def addCmd(cmdfn):
+        tp.command()(cmdfn)
+
+    def default_fn(self):
+        """
+        This function is called when the package runs with no arguments. 
+        Defaults to the --examples / -x behavior, but can be overridden.
+        """
+        example_callback()
 
     def history(
         self,
@@ -176,6 +221,7 @@ class CLI:
             print(f"{idx:3d} / {' '.join(x)}")
 
     def _mk_cmd_dev(self):
+        # TODO: add a subcommand feature for addcmd that can be used for this instead.
         stp = typer.Typer(
             help="contains development subcommands",
             no_args_is_help=True,

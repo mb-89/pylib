@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pylib = "pylib.cli:run"
+pylib = "pylib.__main__:main"
 
 [project.gui-scripts]
 
