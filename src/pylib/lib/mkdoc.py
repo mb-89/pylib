@@ -106,4 +106,4 @@ def mk_mdbook(modname, dst):
 def mk_readme(modname, dst):
     dst = dst / "README.md"
     open(dst, "wb").write(("#TBD").encode("utf-8"))
-    log.info(f"written mdbook -> {dst}.")
+    log.info(f"written readme -> {dst}.")

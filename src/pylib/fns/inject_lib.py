@@ -17,7 +17,7 @@ def inject_lib(
         force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
         imp: ant[bool, to("-f", help="hidden flag, pass to import instead inject",hidden=True)] = False):
 
-    """Injects the pylib code into the given path."""
+    """Inject the pylib code into the given path."""
 
     if not force:
         overwrite = Tp.confirm(

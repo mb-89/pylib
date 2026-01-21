@@ -11,7 +11,7 @@ import subprocess
 import site
 from importlib import reload
 import functools
-import re
+from collections.abc import Callable
 
 # note: 
 # for any imports from pylib:
@@ -34,6 +34,8 @@ examplePath = None
 rootdir = None
 flag_update_lib = False
 flag_default = False
+flag_default_done = False
+cmd_default = None
 
 cli_singleton = None
 
@@ -113,12 +115,17 @@ class CLI:
 
         if name:
             packagename = name
-
         if url:
             packageurl = url
+        if exampledir:
+            examplePath = exampledir
+        if rootdir_path:
+            rootdir=rootdir_path
 
-        examplePath = exampledir
-        rootdir=rootdir_path
+    @staticmethod
+    def setDefaultCmd(cmd:list[str] | Callable):
+        global cmd_default
+        cmd_default = cmd
 
     @staticmethod
     def importcmds(fn_dir:Path):
@@ -153,12 +160,25 @@ class CLI:
     def addCmd(cmdfn):
         tp.command()(cmdfn)
 
-    def default_fn(self):
+    @staticmethod
+    def default_fn():
         """
         This function is called when the package runs with no arguments. 
-        Defaults to the --examples / -x behavior, but can be overridden.
+        Defaults to the --examples / -x behavior, but can be overridden by
+        calling the "setDefaultCmd" function.
         """
-        example_callback()
+        global flag_default_done
+        if flag_default_done:
+            return
+        flag_default_done=True
+
+
+        if cmd_default is None:
+            example_callback()
+        elif callable(cmd_default):
+            cmd_default(cli_singleton)
+        else:
+            CLI.run(cmd_default)
 
     def history(
         self,
@@ -175,14 +195,29 @@ class CLI:
         ] = False,
     ):
         """Recall cli history (mainly used for debugging)."""
+
+        def push():
+            try:
+                x = args_hist[n]
+                args_hist.remove(x)
+            except IndexError:
+                return
+            args_hist.appendleft(x)
+            _set_cached_args(args_hist)
+            return
+
         args_hist = _get_cache_args()
         global historic_Flag
         historic_Flag = True
         if add:
             args = sys.argv
-            if args not in args_hist:
-                args_hist.appendleft(args)
-                _set_cached_args(args_hist)
+            try:
+                args_hist.remove(x)
+            except:
+                pass
+            args_hist.appendleft(args)
+            _set_cached_args(args_hist)
+
             return
 
         if clear:
@@ -197,23 +232,21 @@ class CLI:
             _set_cached_args(x)
             return
 
-        if push:
-            try:
-                x = args_hist[n]
-                args_hist.remove(x)
-            except IndexError:
-                return
-            args_hist.appendleft(x)
-            _set_cached_args(args_hist)
-            return
-
         if n != -1:
             try:
                 x = args_hist[n]
             except IndexError:
                 return
-            self.run(x)
-            return
+            push = True #always push last cmd to top
+            try:
+                print("running")
+                self.run(x)
+            finally:
+                print("pushing")
+                push()
+        
+        if push:
+            push()
 
         # if we are here, print history
         for idx, x in enumerate(args_hist):
@@ -430,3 +463,10 @@ def cb(
 ):
     if len(sys.argv) == 1:
         default_callback()
+    if len(sys.argv) == 3 and sys.argv[-2] == "history":
+        try:
+            default =  not bool(_get_cache_args()[int(sys.argv[-1])])
+        except BaseException:
+            default = False
+        if default:   
+            default_callback()

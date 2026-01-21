@@ -13,7 +13,7 @@ def extract_lib(
     ).resolve(),
     force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
 ):
-    """Injects the pylib code into the given path."""
+    """Extract the pylib code from the given path."""
 
     # TODO
     pass

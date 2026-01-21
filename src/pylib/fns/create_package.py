@@ -9,7 +9,6 @@ log = getlogger()
 cli = getCLI()
 Tp,tp,ta,to,ant = cli.getTyperShortcuts()
 
-
 @cli.cmd
 def create_package(        
     dst: ant[Path, ta(help="Path where the new package shall be created")],
@@ -52,8 +51,8 @@ def create_package(
     shutil.rmtree(dstdir / "src" / name)
 
     ignorelist = ["__pycache__", r"\."]
-    # replace $PKG$
 
+    # replace $PKG$
     def repl(file):
         if file.is_file():
             data = open(file, "r", encoding="utf-8").read()
@@ -76,14 +75,9 @@ def create_package(
 
     il.inject_lib(dstdir, imp)
 
-    if not run:
-        log.info(f"created package @ {dst / name}.")
-    else:
-        log.info(f"created package @ {dst / name}. Running it in separate process.")
-
-    # test once using uv (displaying -x)
     if run:
-        cmd = ["cmd.exe", "/c", "start", "", "py", "-m", "uv", "run", name, "-x"]
+        log.info(f"created package @ {dst / name}. Running it in separate process.")
+        cmd = ["cmd.exe", "/c", "start", "", "py", "-m", "uv", "run", name]
 
         DETACHED_PROCESS = 0x00000008
         CREATE_NEW_CONSOLE = 0x00000010
@@ -96,3 +90,5 @@ def create_package(
             cwd=dstdir,
             creationflags=flags,
         )
+    else:
+        log.info(f"created package @ {dst / name}.")
