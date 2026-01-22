@@ -20,7 +20,7 @@ def mk(modname, dst):
 
 
 def mk_doc_struct(dst:Path):
-    (dst / "000_specs").mkdir(exist_ok=True)
+    (dst / "000_specs").mkdir(exist_ok=True,parents=True)
     (dst / "100_interactive_doc").mkdir(exist_ok=True)
     (dst / "900_dev").mkdir(exist_ok=True)
     
@@ -66,7 +66,9 @@ def mk_cli_doc(modname,dst):
         for cmdp in cmdpatterns:
             if cmdp in resstr:
                 cmds = resstr.split(cmdp)[-1]
-                subcmds = re.findall(r"\r\n(\│|\|)\s+(.*?)\s", cmds)
+                subcmds = re.findall(r"\r\n(\│|\|)\s(.*?)\s", cmds)
+                subcmds = [x for x in subcmds if x[1]]
+
                 if subcmds:
                     log.info(f"found <{target}>...")    
                 for sc in subcmds:

@@ -24,7 +24,6 @@ tp = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 packagename = __package__.split(".")[0]
-packageurl = "<??>"
 
 argbuf_fn = f"{packagename}_argbuf"
 hist_len = 20
@@ -107,16 +106,13 @@ class CLI:
                 cli_singleton.history(add=True)
 
     @staticmethod
-    def setparams(name=None,url=None,exampledir=None,rootdir_path=None):
+    def setparams(name=None,exampledir=None,rootdir_path=None):
         global packagename
-        global packageurl
         global examplePath
         global rootdir
 
         if name:
             packagename = name
-        if url:
-            packageurl = url
         if exampledir:
             examplePath = exampledir
         if rootdir_path:
@@ -144,13 +140,13 @@ class CLI:
             sys.modules[mname] = module
 
     def __init__(
-        self, name: str = "", url: str = "", example_rel2root=None, rootdir_path=None
+        self, name: str = "", example_rel2root=None, rootdir_path=None
     ):
         if rootdir_path is None:
             rootdir_path = (
                 Path(__file__) / ".." / ".." / ".."
             )  # TODO make this more portable.
-        self.setparams(name=name,url=url,exampledir=example_rel2root,rootdir_path=rootdir_path)
+        self.setparams(name=name,exampledir=example_rel2root,rootdir_path=rootdir_path)
         self.rootdir = rootdir
         
         self.addCmd(self.history)
@@ -195,8 +191,9 @@ class CLI:
         ] = False,
     ):
         """Recall cli history (mainly used for debugging)."""
-
-        def push():
+        #TODO: rework this thing. doesnt work as intendend. new design: history should 
+        #modify sys.argv before tp() gets called
+        def pushfn():
             try:
                 x = args_hist[n]
                 args_hist.remove(x)
@@ -239,14 +236,14 @@ class CLI:
                 return
             push = True #always push last cmd to top
             try:
-                print("running")
+                #print("running")
                 self.run(x)
             finally:
-                print("pushing")
-                push()
+                #print("pushing")
+                pushfn()
         
         if push:
-            push()
+            pushfn()
 
         # if we are here, print history
         for idx, x in enumerate(args_hist):

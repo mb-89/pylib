@@ -1,4 +1,5 @@
 """Run this as a debug-hook for tests. Skipped during non-debug testing."""
+#part_of_template
 
 import sys
 

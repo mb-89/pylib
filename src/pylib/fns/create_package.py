@@ -2,8 +2,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import re
 
 from pylib.lib.fns import getlogger, getCLI
+from pylib.lib.tools import run_detached
 
 log = getlogger()
 cli = getCLI()
@@ -23,6 +25,8 @@ def create_package(
     Pass the -imp flag to import instead.
     """
 
+    dstdir = dst / name
+
     if not force:
         overwrite = Tp.confirm(
             f"creating package @ {dstdir}, overriding contents. ok?"
@@ -30,8 +34,27 @@ def create_package(
         if not overwrite:
             raise Tp.Abort()
 
-    dstdir = dst / name
-    
+    from . import inject_lib as il
+
+    create_boilerplate_code(dstdir)
+    il.inject_lib(dstdir, imp=imp, force=True)
+    replace_default_references(dstdir,name)
+    dst_package_self_prune(dstdir, name)
+
+    if run:
+        log.info(f"created package @ {dst / name}. Running it in separate process.")
+        cmd = ["cmd.exe", "/c", "start", "", "py", "-m", "uv", "run", name]
+        run_detached(cmd,dstdir)
+    else:
+        log.info(f"created package @ {dst / name}.")
+
+def dst_package_self_prune(dstdir, name):
+    cmd = [sys.executable, "-m", "uv", "run", name, "history", "-c"] #clear history (in case there is an old install)
+    subprocess.run(cmd, cwd=dstdir)   
+    cmd = [sys.executable, "-m", "uv", "run", name, "dev", "mkdoc"] #create docu
+    subprocess.run(cmd, cwd=dstdir)    
+
+def create_boilerplate_code(dstdir:Path):
     if dstdir.is_dir():
         shutil.rmtree(dstdir)
     dstdir.mkdir(parents=True, exist_ok=True)
@@ -42,16 +65,41 @@ def create_package(
     cmd = [sys.executable, "-m", "uv", "init", name, "--package"]
     subprocess.run(cmd, cwd=dst)
 
-    # copy packagetemplate
-    # TODO: remove packagetemplate. reverse-construct from pylib instead.
-    tplsrc = Path(__file__) / ".." / ".." / "packagetemplate"
-    shutil.copytree(tplsrc, dstdir, dirs_exist_ok=True)
+    #copy stuff from self to dst
+    src_root = (Path(__file__) / ".." / ".."/ ".." / ".." ).resolve()
+    dst_root = dst / name
 
-    # remove default
-    shutil.rmtree(dstdir / "src" / name)
+    paths = [src_root / x for x in ("Readme.md", "pyproject.toml")]
+    searchglobs = [".vscode/**.*", "tests/**.*", "src/pylib/*.*"]
 
+    for x in searchglobs:
+        fn = src_root.rglob if "**" in x else src_root.glob
+        paths.extend(y for y in fn(x) if "#part_of_template" in open(y,"rb").read().decode("utf-8"))
+    
+    copiedfiles = []
+    for src in paths:
+        srcrel = src.relative_to(src_root)
+        dst = dst_root / Path(str(srcrel).replace("pylib",name))
+        dst.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy(src,dst)
+        copiedfiles.append(dst)
+    
+    #walk over all copied files and make content replacements
+    for f in copiedfiles:
+        data = open(f,"rb").read().decode("utf-8")
+        
+        if f.suffix == "md" and "# brief" in data:
+            for x in re.findall(r"^# brief\s+(.*?)\s+^#",data,re.DOTALL+re.MULTILINE):
+                data = data.replace(x,"#TBD")
+
+        data = data.replace("pylib", name)
+
+        open(f,"wb").write(data.encode("utf-8"))
+
+
+
+def replace_default_references(dstdir,name):
     ignorelist = ["__pycache__", r"\."]
-
     # replace $PKG$
     def repl(file):
         if file.is_file():
@@ -70,25 +118,3 @@ def create_package(
 
     for x in (dstdir/".vscode").rglob("*"):
         repl(x)
-
-    from . import inject_lib as il
-
-    il.inject_lib(dstdir, imp)
-
-    if run:
-        log.info(f"created package @ {dst / name}. Running it in separate process.")
-        cmd = ["cmd.exe", "/c", "start", "", "py", "-m", "uv", "run", name]
-
-        DETACHED_PROCESS = 0x00000008
-        CREATE_NEW_CONSOLE = 0x00000010
-        CREATE_NEW_PROCESS_GROUP = 0x00000200
-        flags = CREATE_NEW_CONSOLE
-
-        # works when not debugging. doesnt work when debugging
-        subprocess.Popen(
-            cmd,
-            cwd=dstdir,
-            creationflags=flags,
-        )
-    else:
-        log.info(f"created package @ {dst / name}.")

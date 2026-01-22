@@ -1,3 +1,4 @@
+#part_of_template
 from pylib import cli
 
 def main():
