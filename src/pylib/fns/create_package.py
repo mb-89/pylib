@@ -97,7 +97,6 @@ def create_boilerplate_code(dstdir:Path):
         open(f,"wb").write(data.encode("utf-8"))
 
 
-
 def replace_default_references(dstdir,name):
     ignorelist = ["__pycache__", r"\."]
     # replace $PKG$

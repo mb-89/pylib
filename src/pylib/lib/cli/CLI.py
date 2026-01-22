@@ -2,9 +2,6 @@ import typer
 import importlib.metadata
 import sys
 from pathlib import Path
-import json
-import tempfile
-from collections import deque
 from typing_extensions import Annotated as ant
 import os
 import subprocess
@@ -12,6 +9,7 @@ import site
 from importlib import reload
 import functools
 from collections.abc import Callable
+from pylib.lib.cli import history, dev
 
 # note: 
 # for any imports from pylib:
@@ -24,10 +22,6 @@ tp = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 packagename = __package__.split(".")[0]
-
-argbuf_fn = f"{packagename}_argbuf"
-hist_len = 20
-historic_Flag = False
 
 examplePath = None
 rootdir = None
@@ -102,8 +96,8 @@ class CLI:
                         return     
         finally:
             sys.argv = argv
-            if not historic_Flag:
-                cli_singleton.history(add=True)
+            if not history.history_was_called:
+                history.history(add=True)
 
     @staticmethod
     def setparams(name=None,exampledir=None,rootdir_path=None):
@@ -149,12 +143,46 @@ class CLI:
         self.setparams(name=name,exampledir=example_rel2root,rootdir_path=rootdir_path)
         self.rootdir = rootdir
         
-        self.addCmd(self.history)
-        self._mk_cmd_dev()
+        history.packagename = packagename
+        self.addCmd(history.history)
+        self.addCmd(dev.getCMDs(rootdir),parent=self.tp)
 
     @staticmethod
-    def addCmd(cmdfn):
-        tp.command()(cmdfn)
+    def addCmd(cmdfn: Callable | dict, parent = None):
+        if parent is None:
+            parent  = tp
+        if callable(cmdfn):
+            tp.command()(cmdfn)
+        else:
+            # construct command tree
+            tree = {}
+            for k,v in cmdfn["fns"].items():
+                target = tree
+                path = k.split("/")
+                for p in path[:-1]:
+                    target = target.setdefault(p,{})
+                target[path[-1]] = v
+            for k,v in cmdfn["helps"].items():
+                target = tree
+                path = k.split("/")
+                for p in path:
+                    target = target.setdefault(p,{})
+                target["_help"] = v
+
+            #walk tree, add cmds and subtypers
+            def addsubtyper(parent,key,value):
+                if key.startswith("_"):
+                    return 
+                if isinstance(value, dict): 
+                    child = typer.Typer(no_args_is_help=True,help=value.get("_help",""))
+                    for ck,cv in value.items():
+                        addsubtyper(child,ck,cv)
+                    parent.add_typer(child,name=key)
+                else:
+                    parent.command(key)(value)
+
+            for k,v in tree.items():  
+                addsubtyper(parent,k,v)
 
     @staticmethod
     def default_fn():
@@ -176,194 +204,6 @@ class CLI:
         else:
             CLI.run(cmd_default)
 
-    def history(
-        self,
-        n: ant[int, ta(help="selected history entry")] = -1,
-        push: ant[
-            bool, to("-p", "--push", help="push the selected entry to the top")
-        ] = False,
-        clear: ant[
-            bool, to("-c", "--clear", help="clear (if n not provided, clear all)")
-        ] = False,
-        add: ant[
-            bool,
-            to("-a", "--add", help="add current sys.argv to hist. used internally"),
-        ] = False,
-    ):
-        """Recall cli history (mainly used for debugging)."""
-        #TODO: rework this thing. doesnt work as intendend. new design: history should 
-        #modify sys.argv before tp() gets called
-        def pushfn():
-            try:
-                x = args_hist[n]
-                args_hist.remove(x)
-            except IndexError:
-                return
-            args_hist.appendleft(x)
-            _set_cached_args(args_hist)
-            return
-
-        args_hist = _get_cache_args()
-        global historic_Flag
-        historic_Flag = True
-        if add:
-            args = sys.argv
-            try:
-                args_hist.remove(x)
-            except:
-                pass
-            args_hist.appendleft(args)
-            _set_cached_args(args_hist)
-
-            return
-
-        if clear:
-            if n != -1:
-                try:
-                    args_hist.remove(args_hist[n])
-                    x = args_hist
-                except IndexError:
-                    return
-            else:
-                x = []
-            _set_cached_args(x)
-            return
-
-        if n != -1:
-            try:
-                x = args_hist[n]
-            except IndexError:
-                return
-            push = True #always push last cmd to top
-            try:
-                #print("running")
-                self.run(x)
-            finally:
-                #print("pushing")
-                pushfn()
-        
-        if push:
-            pushfn()
-
-        # if we are here, print history
-        for idx, x in enumerate(args_hist):
-            from pylib.lib.cli.print import print
-            print(f"{idx:3d} / {' '.join(x)}")
-
-    def _mk_cmd_dev(self):
-        # TODO: add a subcommand feature for addcmd that can be used for this instead.
-        stp = typer.Typer(
-            help="contains development subcommands",
-            no_args_is_help=True,
-        )
-        scmd = stp.command
-        scmd("setup")(self.dev_install)
-        scmd("test")(self.dev_test)
-        scmd("lint")(self.dev_lint)
-        scmd("lib_update")(self.dev_update)
-        scmd("mkdoc")(self.dev_mkdoc)
-
-        self.tp.add_typer(stp, name="dev")
-
-    def dev_install(self):
-        """Install development dependencies. Assumes a local git repo. Will not work with uvx."""
-        subprocess.call(["uv", "sync", "--group", "dev"], cwd=rootdir)
-
-    def dev_test(
-        self,
-        filt: ant[str, to("-f", "--filt", help="filter by test name")] = "",
-        mark: ant[
-            str,
-            to(
-                "-m",
-                "--mark",
-                help="filter by marker name. See pyproject.toml for avail. markers.",
-            ),
-        ] = "",
-    ):
-        """Run common test commands. Collection of useful tests, can also be done via pytest."""
-        rd = (rootdir / ".." / "..").resolve()
-        docdir = Path(__file__) / ".." / ".." / "doc"
-        cmd = [Path(sys.executable) / ".." / "py.test", str(docdir).replace("\\", "/")]
-        if filt:
-            cmd.extend(["-k", filt])
-        if mark:
-            cmd.extend(["-m", mark])
-        subprocess.call(cmd, cwd=rd)
-
-    def dev_lint(self):
-        """Run common linter commands. Collection of useful lints, can also be done via ruff."""
-        rd = (rootdir / ".." / "..").resolve()
-        subprocess.call(
-            [
-                Path(sys.executable) / ".." / "ruff",
-                "check",
-                "--output-format=concise",
-                "--ignore-noqa",
-            ],
-            cwd=rd,
-        )
-
-    def dev_update(self):
-        """update the pylib code used by this package. Pass the hidden --library-update flag to run it automatically."""
-        libdir = Path(__file__) / ".." / ".."
-        src = libdir / "src.json"
-        if not src.is_file():
-            pass  # TODO: what do we do here?
-        else:
-            srcdata = json.loads(open(src, "r").read())
-            if srcdata["type"] == "editable":
-                dstdir = libdir / ".." / ".." / ".."
-                dstdir = dstdir.resolve()
-                cmd = [
-                    sys.executable,
-                    "-m",
-                    "uv",
-                    "run",
-                    "pylib",
-                    "inject-lib",
-                    str(dstdir).replace("\\", "/"),
-                    "-f",
-                ]
-
-                subprocess.call(cmd, cwd=srcdata["path"])
-
-    def dev_mkdoc(self):
-        """create the documentation for the package."""
-        import click
-
-        parent = click.get_current_context(silent=True).parent
-        while parent.parent is not None:
-            parent = parent.parent
-        modname = parent.info_name.split()[-1]
-
-        from pylib.lib.fns import getlogger
-        log = getlogger()
-        log.info(f"creating doc for <{modname}>...")
-
-        dst = (Path(__file__) / ".." / ".." / ".." / "doc").resolve()
-
-        from pylib.lib.mkdoc import mk
-        mk(modname, dst)
-
-
-def _get_cache_args() -> deque:
-    """Return the last cached cli calls."""
-    path = Path(tempfile.gettempdir()) / argbuf_fn
-    dq = deque(maxlen=hist_len)
-    if not path.is_file():  # pragma: no cover
-        return dq
-    lst = json.loads(open(path, "r").read())
-    for x in lst:
-        dq.append(x)
-    return dq
-
-
-def _set_cached_args(args_dq: deque):
-    """Cache this cli call."""
-    path = Path(tempfile.gettempdir()) / argbuf_fn
-
-    open(path, "w").write(json.dumps(list(args_dq)))
 
 
 def version_callback():
