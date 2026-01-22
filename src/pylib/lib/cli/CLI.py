@@ -26,19 +26,20 @@ packagename = __package__.split(".")[0]
 examplePath = None
 rootdir = None
 flag_update_lib = False
-flag_default = False
-flag_default_done = False
 cmd_default = None
 
 cli_singleton = None
-
+def get_cli_singleton():
+    global cli_singleton
+    if cli_singleton is None:
+        cli_singleton = CLI()
+    return cli_singleton
 
 def cmd(fn):
     @functools.wraps(fn)
     def fnw(*args,**kwargs):
         return fn(*args,**kwargs)
     CLI.addCmd(fn)
-    print(f"registered {fn}")
     return fnw
 
 class CLI:
@@ -55,49 +56,13 @@ class CLI:
 
     @staticmethod
     def run(argv=None):
-        global cli_singleton
-        if cli_singleton is None:
-            cli_singleton = CLI()
+        cli_singleton = get_cli_singleton()
+        if argv:
+            sys.argv = ["api"] + argv
 
-        if argv is None:
-            argv = [x for x in sys.argv[1:]]
-        try:
-            if "--library-update" in argv:
-                library_update_callback()
-                argv.remove("--library-update")
-
-            if any(x in argv for x in ["-v", "--version"]):
-                version_callback()
-            elif any(x in argv for x in ["-x", "--examples"]):
-                example_callback()
-            else:
-                try:
-                    if flag_update_lib:
-                        cli_singleton.dev_update()
-                        from pylib.lib.cli.print import print
-                        udl = []
-                        for k,v in sys.modules.items():
-                            if k.startswith("pylib.lib."):
-                                print(f"reloading {k}")
-                                udl.append(v)
-                        from pylib.lib.fns import getversion
-                        print(f"lib version before reload: {getversion()}")
-                        del getversion
-                        for x in udl:
-                            reload(x)
-                        from pylib.lib.fns import getversion
-                        print(f"lib version after reload: {getversion()}")
-                        del getversion
-
-                    cli_singleton.tp(argv)             
-                except SystemExit as _:
-                    if flag_default: 
-                        cli_singleton.default_fn()
-                        return     
-        finally:
-            sys.argv = argv
-            if not history.history_was_called:
-                history.history(add=True)
+        done,argv = preprocess_argv(argv)
+        if not done:
+            cli_singleton.tp(argv)  
 
     @staticmethod
     def setparams(name=None,exampledir=None,rootdir_path=None):
@@ -119,9 +84,6 @@ class CLI:
 
     @staticmethod
     def importcmds(fn_dir:Path):
-        global cli_singleton
-        if cli_singleton is None:
-            cli_singleton = CLI()    
 
         #trivial logic first: check if getCLI is in file
         mods = tuple(x for x in fn_dir.rglob("*.py") if not x.stem.startswith("_") and "getCLI" in open(x,"r").read())
@@ -191,14 +153,8 @@ class CLI:
         Defaults to the --examples / -x behavior, but can be overridden by
         calling the "setDefaultCmd" function.
         """
-        global flag_default_done
-        if flag_default_done:
-            return
-        flag_default_done=True
-
-
         if cmd_default is None:
-            example_callback()
+            show_examples()
         elif callable(cmd_default):
             cmd_default(cli_singleton)
         else:
@@ -206,14 +162,14 @@ class CLI:
 
 
 
-def version_callback():
+def print_version():
     version = importlib.metadata.version(packagename)
     from pylib.lib.cli.print import print
     from pylib.lib.fns import getversion
     print(version)
     print(f"lib: {getversion()}")
 
-def example_callback():
+def show_examples():
     try:
         p = (rootdir / examplePath).resolve()
     except BaseException:
@@ -257,19 +213,67 @@ def example_callback():
         "lab",
         str(index_path).replace("\\", "/"),
     ]
-    subprocess.run(cmd)
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        pass
 
-def library_update_callback():
-    global flag_update_lib
-    flag_update_lib = True
+def library_update():
+    from pylib.lib.fns import getversion
+    print(f"lib version before reload: {getversion()}")
 
-def default_callback():
-    global flag_default
-    flag_default = True
+    dev.update()
+
+    udl = []
+    for k,v in sys.modules.items():
+        if k.startswith("pylib.lib."):
+            print(f"reloading {k}")
+            udl.append(v)
+    for x in udl:
+        reload(x)     
+
+    from pylib.lib.fns import getversion
+    print(f"lib version after reload: {getversion()}")   
+
+def preprocess_argv(argv):
+    done = False
+    cli_singleton = get_cli_singleton()
+    
+    #call history
+    argv_mod = history.history(stub=False)
+    if argv_mod is None:
+        done = True
+    else:
+        argv = argv_mod
+
+    if not done: #update lib, if prompted, before executing rest
+        if "--library-update" in argv:
+            argv.remove("--library-update")    
+            library_update()
+
+    #display version, if prompted
+    if not done:
+        if "-v" in argv or "--version" in argv:
+            print_version()
+            done = True
+
+    #display examples, if prompted
+    if not done:
+        if "-x" in argv or "--examples" in argv:
+            show_examples()
+            done = True
+
+    #call registered default fn, if args are empty.
+    if not done:
+        if len(argv) == 1:
+            
+            cli_singleton.default_fn()
+            done=True
+
+    return done, argv
 
 def noop():
     pass
-
 
 @tp.callback(invoke_without_command=True)
 def cb(
@@ -298,12 +302,6 @@ def cb(
         help="pass to update internal pylib before running commands",
     ),
 ):
-    if len(sys.argv) == 1:
-        default_callback()
-    if len(sys.argv) == 3 and sys.argv[-2] == "history":
-        try:
-            default =  not bool(_get_cache_args()[int(sys.argv[-1])])
-        except BaseException:
-            default = False
-        if default:   
-            default_callback()
+    #we only need this callback to register the flags above in the cli.
+    #these flags are not processed here, but in the preprocess_argv fn.
+    pass

@@ -93,27 +93,6 @@ def create_boilerplate_code(dstdir:Path):
                 data = data.replace(x,"#TBD")
 
         data = data.replace("pylib", name)
+        data = data.replace("#part_of_template","")
 
         open(f,"wb").write(data.encode("utf-8"))
-
-
-def replace_default_references(dstdir,name):
-    ignorelist = ["__pycache__", r"\."]
-    # replace $PKG$
-    def repl(file):
-        if file.is_file():
-            data = open(file, "r", encoding="utf-8").read()
-            if "$PKG$" in data:
-                data = data.replace("$PKG$", name)
-                open(file, "w", encoding="utf-8").write(data)
-        if "$PKG$" not in file.stem:
-            return
-        file.rename(file.with_stem(file.stem.replace("$PKG$", name)))
-
-    for x in dstdir.rglob("*"):
-        if any(y in str(x) for y in ignorelist):
-            continue
-        repl(x)
-
-    for x in (dstdir/".vscode").rglob("*"):
-        repl(x)
