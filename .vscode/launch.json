@@ -7,7 +7,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Module",
+            "name": "Python: Module (use last history entry)",
             "type": "debugpy",
             "request": "launch",
             "module": "pylib",
@@ -17,7 +17,18 @@
                 "history",
                 "0"
             ],
-            //"preLaunchTask": "uv_sync"
+        },
+        {
+            "name": "Python: Module (select history entry)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pylib",
+            "python": ".venv/Scripts/python.exe",
+            "justMyCode": false,
+            "args": [
+                "history",
+                "--select"
+            ],
         }
     ]
 }

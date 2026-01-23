@@ -38,7 +38,6 @@ def create_package(
 
     create_boilerplate_code(dstdir)
     il.inject_lib(dstdir, imp=imp, force=True)
-    replace_default_references(dstdir,name)
     dst_package_self_prune(dstdir, name)
 
     if run:

@@ -59,10 +59,12 @@ class CLI:
         cli_singleton = get_cli_singleton()
         if argv:
             sys.argv = ["api"] + argv
+        elif argv is None:
+            argv = sys.argv
 
-        done,argv = preprocess_argv(argv)
+        done,argv = preprocess_sys_argv()
         if not done:
-            cli_singleton.tp(argv)  
+            cli_singleton.tp(argv[1:])  
 
     @staticmethod
     def setparams(name=None,exampledir=None,rootdir_path=None):
@@ -235,9 +237,14 @@ def library_update():
     from pylib.lib.fns import getversion
     print(f"lib version after reload: {getversion()}")   
 
-def preprocess_argv(argv):
+def preprocess_sys_argv():
     done = False
     cli_singleton = get_cli_singleton()
+    argv = sys.argv
+
+    #if help is requested, abort and pass to typer.
+    if "-h" in argv or "--help" in argv:
+        return done, argv
     
     #call history
     argv_mod = history.history(stub=False)

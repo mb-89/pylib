@@ -76,6 +76,8 @@ def inject_lib(
         # replace $PKG$ etc
         from pylib.lib.fns import getversion
         libversion = getversion()
+
+        #might not be needed any more:
         for x in dstdir.rglob("*"):
             if any(y in str(x) for y in ignorelist):
                 continue
