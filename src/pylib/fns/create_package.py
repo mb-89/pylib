@@ -11,6 +11,9 @@ log = getlogger()
 cli = getCLI()
 Tp,tp,ta,to,ant = cli.getTyperShortcuts()
 
+#we need this so the search doesnt find the string within this file itself
+pot = "$part_of_template".replace("$","#")
+
 @cli.cmd
 def create_package(        
     dst: ant[Path, ta(help="Path where the new package shall be created")],
@@ -69,11 +72,11 @@ def create_boilerplate_code(dstdir:Path):
     dst_root = dst / name
 
     paths = [src_root / x for x in ("Readme.md", "pyproject.toml")]
-    searchglobs = [".vscode/**.*", "tests/**.*", "src/pylib/*.*"]
+    searchglobs = [".vscode/**.*", "tests/**.*", "src/pylib/*.*", "src/pylib/fns/*.py"]
 
     for x in searchglobs:
         fn = src_root.rglob if "**" in x else src_root.glob
-        paths.extend(y for y in fn(x) if "#part_of_template" in open(y,"rb").read().decode("utf-8"))
+        paths.extend(y for y in fn(x) if pot in open(y,"rb").read().decode("utf-8"))
     
     copiedfiles = []
     for src in paths:
@@ -92,6 +95,6 @@ def create_boilerplate_code(dstdir:Path):
                 data = data.replace(x,"#TBD")
 
         data = data.replace("pylib", name)
-        data = data.replace("#part_of_template","")
+        data = data.replace(pot,"")
 
         open(f,"wb").write(data.encode("utf-8"))
