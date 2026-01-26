@@ -11,3 +11,4 @@ wheels/
 uv.lock
 .ipynb_checkpoints/
 .coverage
+src/pylib/doc/700_book/*

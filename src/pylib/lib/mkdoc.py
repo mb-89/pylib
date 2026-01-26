@@ -1,21 +1,24 @@
 """Functions used to generate documentation"""
 from pylib.lib.fns import getlogger
+from pylib.lib.tools import mk_win_link
 import subprocess
 import sys
 import re
 from pathlib import Path
+import shutil
+import os
 
 log = getlogger()
 
 
 def mk(modname, dst):
     """Generate all docu for given module into dst."""
-    mk_doc_struct(dst)
-    mk_setup_doc(modname,dst)
-    mk_intro_doc(modname,dst)
-    mk_cli_doc(modname,dst)
+    #mk_doc_struct(dst)
+    #mk_setup_doc(modname,dst)
+    #mk_intro_doc(modname,dst)
+    #mk_cli_doc(modname,dst)
     mk_mdbook(modname,dst)
-    mk_readme(modname,dst)
+    #mk_readme(modname,dst)
 
 
 
@@ -100,8 +103,32 @@ def mk_mdbook(modname, dst):
             "mdbook not found. Install via <winget install --id=Rustlang.mdBook -e>"
         )
         exit(-1)
-    dst = dst / "000_specs" / "003_book"
-    open(dst, "wb").write(("#TBD").encode("utf-8"))
+    mdbook_found = subprocess.run(["where", "mdbook-pdf"], capture_output=True).returncode == 0
+    if not mdbook_found:
+        log.warning(
+            "mdbook-pdf not found. No pdf book will be generated.\n" \
+            "Install via\n"
+            "winget install Rustlang.Rustup"
+            "cargo install mdbook-pdf"
+        )
+    dst = dst / "700_book"
+    shutil.rmtree(dst,ignore_errors=True)
+    cmd = ["mdbook", "init", dst.resolve(), "--force", "--title", modname]
+    subprocess.run(cmd, capture_output=True)
+    
+    toml = open(dst/"book.toml","rb").read().decode("utf-8")
+    toml +=('\n[build]\nbuild-dir= "dist"')
+    toml +=('\n[output.html]\n\n')
+    toml +=('\n[output.pdf]\n\n')
+    open(dst/"book.toml","w").write(toml)
+    
+    shutil.rmtree(dst/"book",ignore_errors=True)
+    cmd = ["mdbook", "build", dst.resolve()]
+    subprocess.run(cmd, capture_output=True)    
+    
+    mk_win_link("book_html", dst/"dist"/"html"/"index.html",dst=dst)
+    if mdbook_found:
+        mk_win_link("book_pdf", dst/"dist"/"pdf"/"output.pdf",dst=dst)
     log.info(f"written mdbook -> {dst}.")
 
 

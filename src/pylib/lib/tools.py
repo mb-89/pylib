@@ -1,6 +1,8 @@
 import asyncio
 import functools
 import subprocess
+import os
+from pathlib import Path
 
 def maybe_async(func):
     """Allow a function to be either awaited or called.
@@ -51,3 +53,10 @@ def run_detached(cmd,cwd = None):
         cwd=cwd,
         creationflags=flags,
     )
+
+def mk_win_link(linkname, target, dst=None):
+    if dst is None: 
+        dst = Path(os.getcwd())
+    lnkstr=str(dst/f"{linkname}.lnk").replace("/","\\")
+    targetstr=str(target).replace("/","\\")
+    subprocess.run(["powershell", "-Command", f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnkstr}'); $s.TargetPath='{targetstr}'; $s.Save();"], capture_output=True)  
