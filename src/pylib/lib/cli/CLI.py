@@ -183,9 +183,9 @@ def show_examples():
         panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         return
 
-    try:
-        import jupyterlab
-    except ImportError:
+    ju_found = subprocess.run(["where", "jupyter"], capture_output=True).returncode == 0
+
+    if not ju_found:
         pnl = [
             "",
             "The example browser requires jupyterlab.",
@@ -203,8 +203,9 @@ def show_examples():
         from pylib.lib.cli.print import panel
         panel("\n".join(pnl), width=80, title="Examples", title_align="left")
         os.startfile(p)
+        return
 
-    pnl = ["", "starting jupyter lab.", "press ctrl+c to abort."]
+    pnl = ["", "starting jupyter lab.", "This may take a moment.", "press ctrl+c to abort."]
     from pylib.lib.cli.print import panel
     panel("\n".join(pnl), width=80, title="Jupyter lab", title_align="left")
 

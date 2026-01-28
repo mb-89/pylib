@@ -147,6 +147,14 @@ def mk_readme(modname, dst):
     log.info(f"written readme -> {dst}.")
 
 def convertnbs(root:Path)->list[Path]:
+    exe_found = subprocess.run(["where", "jupyter"], capture_output=True).returncode == 0
+    if not exe_found:
+        log.warning(
+            "jupyter not found. Notebooks will not be added to doc.\n" \
+            "Install via\n"
+            "uv add jupyter"
+        )
+        return []
     glob = root.rglob("**.ipynb")
     glob = [x for x in glob if not any(y.startswith(".") for y in x.parts)]
     cmd = ["jupyter", "nbocnvert", "--to=markdown"]
