@@ -9,18 +9,16 @@ import shutil
 import os
 
 log = getlogger()
-
+bookdirname="700_book"
 
 def mk(modname, dst):
     """Generate all docu for given module into dst."""
-    #mk_doc_struct(dst)
-    #mk_setup_doc(modname,dst)
-    #mk_intro_doc(modname,dst)
-    #mk_cli_doc(modname,dst)
+    mk_doc_struct(dst)
+    mk_setup_doc(modname,dst)
+    mk_intro_doc(modname,dst)
+    mk_cli_doc(modname,dst)
+    mk_readme(modname,dst)
     mk_mdbook(modname,dst)
-    #mk_readme(modname,dst)
-
-
 
 def mk_doc_struct(dst:Path):
     (dst / "000_specs").mkdir(exist_ok=True,parents=True)
@@ -100,7 +98,9 @@ def mk_mdbook(modname, dst):
         subprocess.run(["mdbook", "-V"], capture_output=True)
     except BaseException:
         log.error(
-            "mdbook not found. Install via <winget install --id=Rustlang.mdBook -e>"
+            "mdbook not found. Install via"
+            "winget install Rustlang.Rustup"
+            "cargo install mdbook"
         )
         exit(-1)
     mdbook_found = subprocess.run(["where", "mdbook-pdf"], capture_output=True).returncode == 0
@@ -111,20 +111,29 @@ def mk_mdbook(modname, dst):
             "winget install Rustlang.Rustup"
             "cargo install mdbook-pdf"
         )
-    dst = dst / "700_book"
+    root = dst
+    dst = dst / bookdirname
     shutil.rmtree(dst,ignore_errors=True)
     cmd = ["mdbook", "init", dst.resolve(), "--force", "--title", modname]
     subprocess.run(cmd, capture_output=True)
     
+    #modify build cfg
     toml = open(dst/"book.toml","rb").read().decode("utf-8")
     toml +=('\n[build]\nbuild-dir= "dist"')
     toml +=('\n[output.html]\n\n')
     toml +=('\n[output.pdf]\n\n')
     open(dst/"book.toml","w").write(toml)
+
+    #copy and convert files
+    nb_mds = convertnbs(root)
+    createMd(root,dst)
+
+    #cleanup
+    for x in nb_mds: x.unlink()
     
     shutil.rmtree(dst/"book",ignore_errors=True)
     cmd = ["mdbook", "build", dst.resolve()]
-    subprocess.run(cmd, capture_output=True)    
+    _ = subprocess.run(cmd, capture_output=True)    
     
     mk_win_link("book_html", dst/"dist"/"html"/"index.html",dst=dst)
     if mdbook_found:
@@ -136,3 +145,74 @@ def mk_readme(modname, dst):
     dst = dst / "README.md"
     open(dst, "wb").write(("#TBD").encode("utf-8"))
     log.info(f"written readme -> {dst}.")
+
+def convertnbs(root:Path)->list[Path]:
+    glob = root.rglob("**.ipynb")
+    glob = [x for x in glob if not any(y.startswith(".") for y in x.parts)]
+    cmd = ["jupyter", "nbocnvert", "--to=markdown"]
+    cmd.extend([str(x.resolve()) for x in glob])
+    subprocess.run(cmd, capture_output=True)   
+    return [x.with_suffix(".md") for x in glob]
+
+def createMd(root, dst):
+    mddst = dst / "src" / "Summary.md"
+    dct = {}
+
+    special_case_mapping = {
+        "README": ("Introduction", dct)
+    }
+    srcdir = dst / "src"
+    files = root.rglob("*.md")
+    for f in files:
+        stem = f.stem
+        sstem = stem.split("_")
+        relpath = f.relative_to(root)
+        try: 
+            number = int(sstem[0])
+        except BaseException:
+            number = -10
+        target = dct
+        lvl = 0
+        if any(x.startswith(".") or x.startswith("_") for x in relpath.parts):
+            continue
+        if bookdirname in relpath.parts:
+            continue
+        title = stem
+        for x in relpath.parts[:-1]:
+            lvl += 1
+            spart = x.split("_")
+            ptitle = "_".join(spart[1:])
+            try:
+                pno = int(ptitle[0])
+            except BaseException:
+                pno = -1
+            target = dct.setdefault((pno,ptitle),{})
+            if number >=0:
+                title = "_".join(sstem[1:])
+        title,target = special_case_mapping.get(title,(title,target))
+        target[(number,title)] = (relpath,lvl)
+
+    def addcontent(parent, dst):
+        for k in sorted(parent.keys(),key=lambda x:x[0]):
+            child = parent[k]
+            if isinstance(child,dict):
+                line = f"\n# {k[1]}\n"
+                dst.append(line)
+                addcontent(child,dst)
+            else:
+                file,lvl = child
+                srcf = root / file
+                dstflnk = "_".join(file.parts)
+                dstf = srcdir / dstflnk
+                shutil.copy(srcf,dstf)
+                pref = "" if lvl == 0 else (""*lvl+" - ")
+                line = f"{pref}[{k[1]}](./{dstflnk})"
+                dst.append(line)
+
+    mdlst = ["# Summary"]
+    addcontent(dct,mdlst)
+
+    open(mddst,"w").write("\n".join(mdlst))
+
+        
+
