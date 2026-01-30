@@ -162,8 +162,6 @@ class CLI:
         else:
             CLI.run(cmd_default)
 
-
-
 def print_version():
     version = importlib.metadata.version(packagename)
     from pylib.lib.cli.print import print

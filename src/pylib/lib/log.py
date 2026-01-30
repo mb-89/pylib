@@ -63,3 +63,36 @@ def log2file(path: Path):
     fh.setFormatter(fmt)
     fh.setLevel(logging.DEBUG)
     log.addHandler(fh)
+
+class TextualHandler(logging.Handler):
+    def __init__(self, widget):
+        super().__init__()
+        self.widget = widget
+    def emit(self,record):
+        try:
+            msg = self.format(record)
+            self.widget.write(msg)
+        except Exception:
+            self.handleError(record)
+
+
+@cache
+def get_textual_log():
+    log = getlogger()
+
+    try:
+        import textual
+    except BaseException:
+        return
+    from textual.widgets import RichLog
+    w = RichLog()
+    
+    wh = TextualHandler(w)
+    fmts=getFmtStrings(log.name)["file"]
+    fmt = logging.Formatter(fmts)
+    wh.setFormatter(fmt)
+    wh.setLevel(logging.DEBUG)    
+    log.addHandler(wh)
+
+
+    return w

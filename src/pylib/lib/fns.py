@@ -10,6 +10,11 @@ def getlogger():
     from pylib.lib.log import getlogger as gl
     return gl()
 
+
+def get_textual_log():
+    from pylib.lib.log import get_textual_log as gl
+    return gl()
+
 def getCLI():
     from pylib.lib.cli.CLI import CLI
     return CLI
