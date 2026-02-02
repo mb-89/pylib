@@ -74,8 +74,21 @@ class CLI_TUI(App):
             txt = ["Help:\n"]
             txt.append(info["help"])
             txt.append("\nArguments:\n")
-            for x in sorted(info["params"],key=lambda x:x["name"]):
-                txt.append(f"{x['name']}")
+            for idx,x in enumerate(info["params"]):
+                try:
+                    helprecord = data.params[idx].get_help_record(ctx)
+                    if helprecord is None:
+                        helprecord = x.get("help","")
+                    else:
+                        helprecord = "\t".join(helprecord)
+                except IndexError as ie:
+                    if x["name"] == "help":
+                        continue
+                    else:
+                        raise(ie)
+                # TODO instead of displaying text, display a widget where we can enter commands.
+                # might require pre-constructing all widgets
+                txt.append(x["name"]+"\t"+x["type"]["name"]+"\t" + helprecord)
 
             d.write("\n".join(txt))
 
