@@ -68,7 +68,7 @@ def update():
     libdir = Path(__file__) / ".." / ".."
     src = libdir / "src.json"
     if not src.is_file():
-        pass  # TODO: what do we do here?
+        pass  # this is for example the case for pylib itself. do nothing for now.
     else:
         srcdata = json.loads(open(src, "r").read())
         if srcdata["type"] == "editable":

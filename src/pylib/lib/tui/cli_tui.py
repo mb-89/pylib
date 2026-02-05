@@ -3,14 +3,16 @@ from textual.widgets import Footer, Header
 from textual.widgets import Tree
 from textual.widgets import HelpPanel
 import click
-from textual.widgets import RichLog,Label, Input, Switch, Button
+from textual.widgets import RichLog,Label, Input, Switch, Button,TabbedContent, TabPane,Markdown
 from textual.containers import Vertical, Horizontal,VerticalScroll
-from rich.console import RenderableType
-from textual.screen import ModalScreen
 from textual.message import Message
 from textual import on
+from pathlib import Path
+from textual import events
+import os
+import tomllib  
 
-from pylib.lib.fns import getlogger, get_textual_log
+from pylib.lib.fns import getlogger
 from pylib.lib.tools import run_detached
 log = getlogger()
 
@@ -18,13 +20,29 @@ log = getlogger()
 def run():
     app = CLI_TUI()
     app.run()
+pkg =__package__.split(".")[0]
+
+rootpath = Path(__file__).parent.parent.parent.parent.parent
+pkgdescr = tomllib.load(open(rootpath/"pyproject.toml","rb"))["project"]["description"]
+HOME_MD = f"""
+# {pkg}
+
+## package info
+
+{pkgdescr}
+
+## further reading
+
+- press [f1](app:action_show_help_panel) to show the help sidebar.
+- see the [CLI](tab:clitab) tab for all commandline functions.
+- call [{pkg} --help](cmd:--help) for the commandline help.
+- call [{pkg} --docu](cmd:--docu) for specs and interactive docu.
+- see [README](path:$root/README.md) for setup information.
+
+"""
 
 
 class Cmdtree(Tree):
-
-    BINDINGS = [
-            Binding("f5", "run", "Run",priority=True),
-    ]
 
     def __init__(self):
         super().__init__("cli commands")
@@ -59,15 +77,6 @@ class Cmdtree(Tree):
             v.widget = cont
             yield cont
 
-    def action_run(self):
-        ac = self.app.active_cmd
-        if not ac:
-            return
-        cmd = ac.widget.query_one(CMDInput).value
-        run_detached(cmd)
-        self.app.notify("executed command in detached shell.")
-
-
 class Mk_curr_cmdline(Message):
     pass
 
@@ -99,7 +108,7 @@ class ArgumentInput(Horizontal):
                 self.val = Argument_switch(value = arg["default"])
                 yield self.val
             #case "path":
-            # there is no good way to implement a filepicker. leave it for now.
+            # there is no good/quick way to implement a filepicker. leave it for now.
             #        yield Button("Browse")
             #        yield Input(placeholder=placeholder,id="li-input")
                     
@@ -135,7 +144,7 @@ class CMDline(Horizontal):
         self.styles.max_height=3
 
     def on_button_pressed(self):
-        self.app.query_one(Cmdtree).action_run()
+        self.app.query_one(CLI_pane).action_run()
        
 class CMDdetails(Vertical):
 
@@ -170,9 +179,62 @@ class CMDdetails(Vertical):
         super().__init__(*lines)
         #self.display = False
 
+class Home(Markdown):
+    def on_markdown_link_clicked(self, event):
+        lnk = event.href
+        lnktype, lnkbody = lnk.split(":")
+        match lnktype:
+            case "cmd":
+                cmd = f"uv run {pkg} "+lnkbody
+                run_detached(cmd)
+                self.app.notify("executed command in detached shell.")
+            case "app":
+                app = self.app
+                getattr(app,lnkbody)()
+            case "tab":
+                app=self.app
+                w = app.query_one(TabbedContent)
+                w.active=lnkbody
+                w.focus()
+            case "path":
+                path = Path(lnkbody.replace("$root",str(rootpath))).resolve()
+                if not path.is_file():
+                    self.app.notify(f"{path} not found. try --docu instead.",Severity="warning")
+                else:
+                    os.startfile(path)
+                    self.app.notify(f"{path} opened in editor.")
+
+
+
+async def on_button_pressed(self, event: Button.Pressed) -> None:
+    if event.button.id == "close":
+        await self.app.pop_screen()
+
+async def on_key(self, event: events.Key) -> None:
+    # Close on Escape
+    if event.key == "escape":
+        await self.app.pop_screen()
 
 class LogWidget(RichLog):
     can_focus=False
+
+    def __init__(self, log, *args, **kwargs):
+        super().__init__(*args,**kwargs)
+        log.connect_textual_widget(self)
+
+class CLI_pane(TabPane):
+    BINDINGS = [
+            Binding("f5", "run", "Run",priority=True),
+    ]
+
+
+    def action_run(self):
+        ac = self.app.active_cmd
+        if not ac:
+            return
+        cmd = ac.widget.query_one(CMDInput).value
+        run_detached(cmd)
+        self.app.notify("executed command in detached shell.")
 
 class CLI_TUI(App):
     """A Textual app that displays cli functions."""
@@ -188,8 +250,8 @@ class CLI_TUI(App):
         if ac is None:
             return
         
-        pkg =__package__.split(".")[0]
-        cmd = ac.data.name #TODO resolve subcommands properly
+
+        cmd = ac.storagekey.replace("_"," ").strip()
         input = ac.widget.query_one(CMDInput)
 
         args = []
@@ -213,35 +275,29 @@ class CLI_TUI(App):
 
 
         input.value = f"uv run {pkg} {cmd} " + " ".join(args)
-        self.add_note("cmd")
 
     async def on_mount(self) -> None:
         # show the built‑in help screen immediately at startup
-        self.action_show_help_panel()
-        self.add_note("test")
-        self.action_log_toggle(setval_hide=True)
-
-    def add_note(self, renderable: RenderableType) -> None:
-        self.query_one(LogWidget).write(renderable)
+        #self.action_show_help_panel()
+        pass
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         
         yield Header()
-        yield LogWidget(classes="-hidden",wrap=False, highlight=True, markup=True) 
-        yield (t := Cmdtree())
-        yield from t.generate_subwidgets()
+        yield LogWidget(log, classes="-hidden",wrap=False, highlight=True, markup=True) 
+        with TabbedContent():
+            with TabPane("Home"):
+                yield Home(HOME_MD,open_links=False)
+            with CLI_pane("CLI",id="clitab"):
+                yield (t := Cmdtree())
+                yield from t.generate_subwidgets()
 
         #with Horizontal(id="footer-outer"):
         #    with Horizontal(id="footer-inner"):
         yield Footer()
         #   yield Label("| ^l log [000 msgs]", id="right-label")
 
-    def action_display_help(self) -> None:
-        #TODO do something useful here
-        self.screen.styles.background = "red"   
-        self.add_note("test")
-        #self.push_screen(ModalScreen("test"))
 
 
     def on_tree_node_highlighted(self,msg):
@@ -264,9 +320,6 @@ class CLI_TUI(App):
             rl.add_class("-hidden")
         else:
             rl.remove_class("-hidden")
-            
-
-        self.add_note("succ")
 
     def action_help_toggle(self,msg=None):
         try:

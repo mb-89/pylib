@@ -152,11 +152,12 @@ class CLI:
     def default_fn():
         """
         This function is called when the package runs with no arguments. 
-        Defaults to the --examples / -x behavior, but can be overridden by
+        Defaults to the --docu behavior, but can be overridden by
         calling the "setDefaultCmd" function.
         """
+        global cmd_default
         if cmd_default is None:
-            show_examples()
+            CLI.run(["tui"])
         elif callable(cmd_default):
             cmd_default(cli_singleton)
         else:
@@ -169,16 +170,16 @@ def print_version():
     print(version)
     print(f"lib: {getversion()}")
 
-def show_examples():
+def show_docu():
     try:
         p = (rootdir / examplePath).resolve()
     except BaseException:
         p = None
 
     if p is None:
-        pnl = ["", "This module provides no examples. Abort."]
+        pnl = ["", "This module provides no docu. Abort."]
         from pylib.lib.cli.print import panel
-        panel("\n".join(pnl), width=80, title="Examples", title_align="left")
+        panel("\n".join(pnl), width=80, title="docu", title_align="left")
         return
 
     ju_found = subprocess.run(["where", "jupyter"], capture_output=True).returncode == 0
@@ -196,10 +197,10 @@ def show_examples():
             "'uvx --with jupyterlab'",
             "in the commandline call.",
             "",
-            "Opening examples in explorer as backup...",
+            "Opening docu in explorer as backup...",
         ]
         from pylib.lib.cli.print import panel
-        panel("\n".join(pnl), width=80, title="Examples", title_align="left")
+        panel("\n".join(pnl), width=80, title="Docu", title_align="left")
         os.startfile(p)
         return
 
@@ -263,10 +264,10 @@ def preprocess_sys_argv():
             print_version()
             done = True
 
-    #display examples, if prompted
+    #display docu, if prompted
     if not done:
-        if "-x" in argv or "--examples" in argv:
-            show_examples()
+        if"--docu" in argv:
+            show_docu()
             done = True
 
     #call registered default fn, if args are empty.
@@ -291,13 +292,12 @@ def cb(
         is_eager=True,
         help="Show the version of this script",
     ),
-    examples: bool = typer.Option(
+    docu: bool = typer.Option(
         None,
-        "--examples",
-        "-x",
+        "--docu",
         callback=noop,
         is_eager=True,
-        help="Shows examples",
+        help="Show docu",
     ),
     library_update: bool = typer.Option(
         None,

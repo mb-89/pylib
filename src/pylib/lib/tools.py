@@ -53,7 +53,6 @@ def run_detached(cmd,cwd = None):
         cmd = shlex.split(cmd)
     cmd = ["cmd", "/K"] + cmd #keeps the console open once done.
     cmd = cmd + ["||", "set", "/p", 'x="Error.Enter to continue"']
-    #TODO: any way to keep the console open on errors?
 
     subprocess.Popen(
         cmd,

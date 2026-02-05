@@ -51,6 +51,8 @@ def getlogger(name="log"):
     log.setLevel(logging.DEBUG)
     hdl.setLevel(logging.DEBUG)
 
+    log.connect_textual_widget = lambda x:connect_textual_widget(log,x)
+
     return log
 
 
@@ -76,16 +78,13 @@ class TextualHandler(logging.Handler):
             self.handleError(record)
 
 
-@cache
-def get_textual_log():
-    log = getlogger()
+
+def connect_textual_widget(log, w):
 
     try:
         import textual
     except BaseException:
         return
-    from textual.widgets import RichLog
-    w = RichLog()
     
     wh = TextualHandler(w)
     fmts=getFmtStrings(log.name)["file"]
@@ -93,6 +92,3 @@ def get_textual_log():
     wh.setFormatter(fmt)
     wh.setLevel(logging.DEBUG)    
     log.addHandler(wh)
-
-
-    return w
