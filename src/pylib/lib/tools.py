@@ -3,6 +3,7 @@ import functools
 import subprocess
 import os
 from pathlib import Path
+import shlex
 
 def maybe_async(func):
     """Allow a function to be either awaited or called.
@@ -48,6 +49,12 @@ def run_detached(cmd,cwd = None):
     flags = CREATE_NEW_CONSOLE
 
     # works when not debugging. doesnt work when debugging
+    if isinstance(cmd,str):
+        cmd = shlex.split(cmd)
+    cmd = ["cmd", "/K"] + cmd #keeps the console open once done.
+    cmd = cmd + ["||", "set", "/p", 'x="Error.Enter to continue"']
+    #TODO: any way to keep the console open on errors?
+
     subprocess.Popen(
         cmd,
         cwd=cwd,

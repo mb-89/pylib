@@ -1,0 +1,61 @@
+LogWidget {
+    background: $surface;
+    color: $text;
+    height: 50vh;
+    dock: bottom;
+    layer: notes;
+    border-top: hkey $primary;
+    offset-y: 0;
+    transition: offset 100ms in_out_cubic;
+    padding: 0 1 1 1;
+}
+
+
+LogWidget:focus {
+    offset: 0 0 !important;
+}
+
+LogWidget.-hidden {
+    offset-y: 100%;
+}
+
+Horizontal#footer-outer {
+            height: 1;
+            dock: bottom;
+        }
+        Horizonal#footer-inner {
+            width: 75%;
+        }
+        Label#right-label {
+            width: 25%;
+            text-align: right;
+            background: $panel;
+        }
+
+    ArgumentInput {
+        height: auto;
+    }
+
+    ArgumentInput > Label#li-label {
+        height: 1;
+        min-height: 1;
+        padding: 0 1;
+        content-align: center middle;
+        width: 10%;
+    }
+    ArgumentInput > Label#li-label-detail {
+        height: 1;
+        min-height: 1;
+        padding: 0 1;
+        content-align: left middle;
+        width: 40%;
+    }
+    ArgumentInput > Label#li-label-more {
+        height: 1;
+        min-height: 1;
+        padding: 0 1;
+        content-align: center middle;
+    }
+ ArgumentInput > Button {
+        padding: 0 1;
+    }
