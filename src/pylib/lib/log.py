@@ -26,13 +26,15 @@ def getFmtStrings(name):
     if name == "log":
         sfmtstr = "%(message)s"
         ffmtstr = "%(levelname)s\t%(message)s @ %(module)s.py:%(lineno)d"
-
     else:
         sfmtstr = "%(name)s / %(message)s"
         ffmtstr = "%(levelname)s\t%(name)s / %(message)s @ %(module)s.py:%(lineno)d"
 
+    tuifmtstr = "%(relativeCreated)08d / %(levelname)s / %(message)s"
+
     dct["stream"] = sfmtstr
     dct["file"] = ffmtstr
+    dct["tui"] = tuifmtstr
 
     return dct
 
@@ -87,7 +89,7 @@ def connect_textual_widget(log, w):
         return
     
     wh = TextualHandler(w)
-    fmts=getFmtStrings(log.name)["file"]
+    fmts=getFmtStrings(log.name)["tui"]
     fmt = logging.Formatter(fmts)
     wh.setFormatter(fmt)
     wh.setLevel(logging.DEBUG)    

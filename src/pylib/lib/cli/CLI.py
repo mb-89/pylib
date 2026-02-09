@@ -27,12 +27,14 @@ examplePath = None
 rootdir = None
 flag_update_lib = False
 cmd_default = None
+fnpaths = []
 
 cli_singleton = None
 def get_cli_singleton():
     global cli_singleton
     if cli_singleton is None:
         cli_singleton = CLI()
+
     return cli_singleton
 
 def cmd(fn):
@@ -64,13 +66,20 @@ class CLI:
 
         done,argv = preprocess_sys_argv()
         if not done:
-            cli_singleton.tp(argv[1:])  
+            for p in fnpaths:
+                cli_singleton.importcmds(p)      
+
+            if len(argv) == 1: #default if empty
+                cli_singleton.default_fn()
+            else:
+                cli_singleton.tp(argv[1:])  
 
     @staticmethod
-    def setparams(name=None,exampledir=None,rootdir_path=None):
+    def setparams(name=None,exampledir=None,rootdir_path=None,fndirs= None):
         global packagename
         global examplePath
         global rootdir
+        global fnpaths
 
         if name:
             packagename = name
@@ -78,6 +87,8 @@ class CLI:
             examplePath = exampledir
         if rootdir_path:
             rootdir=rootdir_path
+        if fndirs:
+            fnpaths = fndirs
 
     @staticmethod
     def setDefaultCmd(cmd:list[str] | Callable):
@@ -226,6 +237,18 @@ def library_update():
 
     dev.update()
 
+    #we need to save some globals
+    global packagename
+    global examplePath
+    global rootdir
+    global fnpaths
+
+    buf_packagename = packagename
+    buf_examplePath = examplePath
+    buf_rootdir = rootdir
+    buf_fnpaths = fnpaths
+
+
     udl = []
     for k,v in sys.modules.items():
         if k.startswith("pylib.lib."):
@@ -235,11 +258,15 @@ def library_update():
         reload(x)     
 
     from pylib.lib.fns import getversion
+    packagename = buf_packagename
+    examplePath = buf_examplePath
+    rootdir = buf_rootdir
+    fnpaths = buf_fnpaths
+
     print(f"lib version after reload: {getversion()}")   
 
 def preprocess_sys_argv():
     done = False
-    cli_singleton = get_cli_singleton()
     argv = sys.argv
 
     #if help is requested, abort and pass to typer.
@@ -269,13 +296,6 @@ def preprocess_sys_argv():
         if"--docu" in argv:
             show_docu()
             done = True
-
-    #call registered default fn, if args are empty.
-    if not done:
-        if len(argv) == 1:
-            
-            cli_singleton.default_fn()
-            done=True
 
     return done, argv
 

@@ -28,7 +28,7 @@ def create_package(
     Pass the -imp flag to import instead.
     """
 
-    dstdir = dst / name
+    dstdir = (dst / name).resolve()
 
     if not force:
         overwrite = Tp.confirm(
@@ -50,11 +50,12 @@ def create_package(
     else:
         log.info(f"created package @ {dst / name}.")
 
-def dst_package_self_prune(dstdir, name):
+def dst_package_self_prune(dstdir, name,mkdocu=True):
     cmd = [sys.executable, "-m", "uv", "run", name, "history", "-c"] #clear history (in case there is an old install)
     subprocess.run(cmd, cwd=dstdir)   
-    cmd = [sys.executable, "-m", "uv", "run", name, "dev", "mkdoc"] #create docu
-    subprocess.run(cmd, cwd=dstdir)    
+    if mkdocu:
+        cmd = [sys.executable, "-m", "uv", "run", name, "dev", "mkdoc"] #create docu
+        subprocess.run(cmd, cwd=dstdir)    
 
 def create_boilerplate_code(dstdir:Path):
     if dstdir.is_dir():
@@ -93,6 +94,9 @@ def create_boilerplate_code(dstdir:Path):
         if f.suffix == "md" and "# brief" in data:
             for x in re.findall(r"^# brief\s+(.*?)\s+^#",data,re.DOTALL+re.MULTILINE):
                 data = data.replace(x,"#TBD")
+
+        if f.name == "pyproject.toml":
+            data = data.replace("common python code","#TBD")
 
         data = data.replace("pylib", name)
         data = data.replace(pot,"")

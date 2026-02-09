@@ -3,6 +3,8 @@ from pathlib import Path
 from pylib.lib.tui import cli_tui
 cli = getCLI()
 
+#part_of_template
+
 @cli.cmd
 def tui():
     """Display the commandline interface inside a tui."""

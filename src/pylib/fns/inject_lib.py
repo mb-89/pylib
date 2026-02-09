@@ -15,9 +15,14 @@ Tp,tp,ta,to,ant = cli.getTyperShortcuts()
 def inject_lib(
         dst: ant[Path, ta(help="Path to inject into.")],
         force: ant[bool, to("-f", help="pass to skip confirmations")] = False,
-        imp: ant[bool, to("-f", help="hidden flag, pass to import instead inject",hidden=True)] = False):
+        imp: ant[bool, to("-f", help="hidden flag, pass to import instead inject",hidden=True)] = False
+        ):
 
     """Inject the pylib code into the given path."""
+
+    if imp:
+        log.warning("the 'import' flag will be ignored.")
+    imp = False
 
     if not force:
         overwrite = Tp.confirm(
@@ -28,7 +33,8 @@ def inject_lib(
 
     dstdir = dst
     log.info(f"injecting lib @ {dstdir}.")
-    ignorelist = ["__pycache__", r"\."]
+    ignorelist = ["__pycache__", r"\.",".lnk"]
+    relevantsuffixes = [".py", ".md", ".toml", ".json",".ipynb"]
     name = dstdir.stem
 
     # check if the source is editable. if so, we are a local import
@@ -58,6 +64,8 @@ def inject_lib(
                 if any(y in str(x) for y in ignorelist):
                     continue
                 if x.is_file():
+                    if x.suffix not in relevantsuffixes:
+                        continue
                     data = open(x, "r", encoding="utf-8").read()
                     pat = f"{name}.lib."
                     if pat in data:
@@ -82,6 +90,8 @@ def inject_lib(
             if any(y in str(x) for y in ignorelist):
                 continue
             if x.is_file():
+                if x.suffix not in relevantsuffixes:
+                    continue
                 # print(x)
                 data = open(x, "r", encoding="utf-8").read()
                 if "$PKG$" in data:

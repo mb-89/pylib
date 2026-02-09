@@ -33,7 +33,7 @@ HOME_MD = f"""
 
 ## further reading
 
-- press [f1](app:action_show_help_panel) to show the help sidebar.
+- press [f1](app:action_help_toggle) to show the help sidebar.
 - see the [CLI](tab:clitab) tab for all commandline functions.
 - call [{pkg} --help](cmd:--help) for the commandline help.
 - call [{pkg} --docu](cmd:--docu) for specs and interactive docu.
@@ -130,8 +130,9 @@ class CMDline(Horizontal):
         inp = CMDInput("")
         inp.styles.max_width="80%"
 
-        but = Button("run")
+        but = Button("run",variant="success")
         but.can_focus=False
+
         lbl = Label("\nCLI command:")
         lbl.styles.align_vertical = "middle"
         lines = [
@@ -279,12 +280,12 @@ class CLI_TUI(App):
     async def on_mount(self) -> None:
         # show the built‑in help screen immediately at startup
         #self.action_show_help_panel()
-        pass
+        log.info("mounted tui")
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         
-        yield Header()
+        #yield Header()
         yield LogWidget(log, classes="-hidden",wrap=False, highlight=True, markup=True) 
         with TabbedContent():
             with TabPane("Home"):
