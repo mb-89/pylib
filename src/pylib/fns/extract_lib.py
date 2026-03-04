@@ -14,5 +14,4 @@ def extract_lib(
 ):
     """Extract the pylib code from the given path."""
 
-    # TODO
-    pass
+    raise NotImplementedError("extraction not implemented yet")

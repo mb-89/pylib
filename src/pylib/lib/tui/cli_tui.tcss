@@ -33,7 +33,7 @@ Horizontal#footer-outer {
         }
 
     ArgumentInput {
-        height: auto;
+        height: 1;
     }
 
     ArgumentInput > Label#li-label {
@@ -58,4 +58,23 @@ Horizontal#footer-outer {
     }
  ArgumentInput > Button {
         padding: 0 1;
+        height: 1
     }
+    Argument_switch {
+  padding: 0 1;
+  height: 1;
+  border: none;
+    }
+Argument_Input{
+height: 1;
+          border: none;
+          padding: 0;
+          width: 1fr;
+    }
+
+CMDline > * {
+  height: 1;
+          border: none;
+          padding: 0 1;
+          width: 1fr;  
+}

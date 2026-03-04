@@ -28,6 +28,7 @@ rootdir = None
 flag_update_lib = False
 cmd_default = None
 fnpaths = []
+flags = []
 
 cli_singleton = None
 def get_cli_singleton():
@@ -43,6 +44,11 @@ def cmd(fn):
         return fn(*args,**kwargs)
     CLI.addCmd(fn)
     return fnw
+
+class CLI_Flag():
+    def __init__(self,name,help):
+        self.name = name
+        self.help = help
 
 class CLI:
     tp = tp
@@ -73,6 +79,12 @@ class CLI:
                 cli_singleton.default_fn()
             else:
                 cli_singleton.tp(argv[1:])  
+
+    @staticmethod
+    def addFlag(flagname, flaghelp):
+        global flags
+        flags.append(CLI_Flag(flagname,flaghelp))
+
 
     @staticmethod
     def setparams(name=None,exampledir=None,rootdir_path=None,fndirs= None):
@@ -107,6 +119,7 @@ class CLI:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             sys.modules[mname] = module
+
 
     def __init__(
         self, name: str = "", example_rel2root=None, rootdir_path=None
@@ -242,11 +255,15 @@ def library_update():
     global examplePath
     global rootdir
     global fnpaths
+    global cmd_default
+    global flags
 
     buf_packagename = packagename
     buf_examplePath = examplePath
     buf_rootdir = rootdir
     buf_fnpaths = fnpaths
+    buf_cmd_default = cmd_default
+    buf_flags = flags
 
 
     udl = []
@@ -262,8 +279,13 @@ def library_update():
     examplePath = buf_examplePath
     rootdir = buf_rootdir
     fnpaths = buf_fnpaths
+    cmd_default = buf_cmd_default
+    flags = buf_flags
 
     print(f"lib version after reload: {getversion()}")   
+
+def print_flag_help():
+    print("flags")
 
 def preprocess_sys_argv():
     done = False
@@ -271,6 +293,9 @@ def preprocess_sys_argv():
 
     #if help is requested, abort and pass to typer.
     if "-h" in argv or "--help" in argv:
+        if "--flag" in argv:
+            print_flag_help()
+            done=True
         return done, argv
     
     #call history
@@ -327,7 +352,9 @@ def cb(
         hidden = True,
         help="pass to update internal pylib before running commands",
     ),
+    flag: ant[list[str],typer.Option(help="Flag(s) that are available in code via lib.getFlags(). See --flag --help for list of availables. Pass multiple times for multiple flags.")] = []
 ):
     #we only need this callback to register the flags above in the cli.
     #these flags are not processed here, but in the preprocess_argv fn.
+    print(flag)
     pass

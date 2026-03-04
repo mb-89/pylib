@@ -128,13 +128,16 @@ class CMDline(Horizontal):
 
     def __init__(self):
         inp = CMDInput("")
-        inp.styles.max_width="80%"
+        
+        
 
         but = Button("run",variant="success")
         but.can_focus=False
+        but.styles.max_width="20%"
 
-        lbl = Label("\nCLI command:")
-        lbl.styles.align_vertical = "middle"
+        lbl = Label("CLI command:")
+        #lbl.styles.align_vertical = "middle"
+        lbl.styles.width="20%"
         lines = [
             lbl,
             inp,

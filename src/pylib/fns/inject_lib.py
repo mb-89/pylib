@@ -121,7 +121,7 @@ def inject_lib(
         ]  # add uv, so we can update later
         subprocess.run(cmd, cwd=dstdir)
         if epl is None:
-            pass  # TODO (how do we re-inject from a remote src?)
+            raise NotImplementedError("injection from vcs not implemented yet")
         else:
             open(libdst / "src.json", "w").write(
                 json.dumps({"type": "editable", "path": epl})

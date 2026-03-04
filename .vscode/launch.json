@@ -29,6 +29,18 @@
                 "history",
                 "--select"
             ],
+        },
+        {
+            "name": "Python: Module (provided args via launch.json)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pylib",
+            "python": ".venv/Scripts/python.exe",
+            "justMyCode": false,
+            "args": [
+                "--help",
+                "--flag"
+            ],
         }
     ]
 }

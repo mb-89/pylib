@@ -6,12 +6,19 @@ Pylib shall provide a function to create a pylib-based project from scratch.
 Pylib itself shall be pylib-based and provide examples for all functions
 Pylib shall be able to extract itself from a path that it was injected in, to get back changes that might be incorporated.
 
-integrated features:
-- [DONE] cli based on typer
-- [DONE] example browser / tests based on ipython notebooks and jupyterlab
-- [DONE] written docu generator: extract docstrings from cli
-- [TODO] written docu generator: generate mdbook?
-- [TODO] add imp from git mode -> later, after git access restore
+backlog:
+
+- [TODO] tui / jumpmode ala posting (alt-based instead of ctrl+o)
+- [TODO] implement [flags](feature_flags.md)
+
+archive:
+
 - [DONE] add logging
 - [DONE] test injection into existing project
 - [DONE] add update fn for injected code (saves source and tries to pull again)
+- [DONE] cli based on typer
+- [DONE] example browser / tests based on ipython notebooks and jupyterlab
+- [DONE] written docu generator: extract docstrings from cli
+- [DONE] written docu generator: generate mdbook?
+- [DONE] add imp from git mode -> moved to "notImplementedError"
+- [DONE] tui / compact designs for inputs ala posting

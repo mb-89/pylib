@@ -4,6 +4,8 @@ from pylib.lib.fns import getCLI
 cli = getCLI()
 Tp,tp,ta,to,ant = cli.getTyperShortcuts()
 
+testflag = cli.addFlag("test","bla")
+
 @cli.cmd
 def hello_world(
 ):
