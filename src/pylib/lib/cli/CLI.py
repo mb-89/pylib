@@ -28,7 +28,8 @@ rootdir = None
 flag_update_lib = False
 cmd_default = None
 fnpaths = []
-flags = []
+flags = {}
+unregistered_flags = {}
 
 cli_singleton = None
 def get_cli_singleton():
@@ -46,9 +47,40 @@ def cmd(fn):
     return fnw
 
 class CLI_Flag():
-    def __init__(self,name,help):
+    def __init__(self,name,help="",type=None,default=None):
         self.name = name
         self.help = help
+        self.type = type
+        self.default = None
+        self.val = None
+        self._valSet = False
+
+    def __str__(self):
+        info = [self.name, self.help.replace("\n", " "), self.type.__name__ if self.type else "", str(self.default) if self.default else ""]
+        info = [x for x in info if x]
+        return " / ".join(info)
+
+    def setVal(self, val):
+
+        if self.type:
+            tp = getattr(__builtins__,self.type,None)
+            if tp is None:
+                tp = globals().get(tp,None)
+            if tp is not None:
+                try:
+                    val = tp(val)
+                except BaseException:
+                    pass
+
+        self.val = val
+        self._valSet =True
+
+    def getVal(self):
+        if self._valSet:
+            return self.val
+        else:
+            return self.default
+
 
 class CLI:
     tp = tp
@@ -81,9 +113,27 @@ class CLI:
                 cli_singleton.tp(argv[1:])  
 
     @staticmethod
-    def addFlag(flagname, flaghelp):
+    def addFlag(flagname, help = "", type=None, default=None):
         global flags
-        flags.append(CLI_Flag(flagname,flaghelp))
+        flagname = flagname.lower()
+        flags[flagname] = CLI_Flag(flagname,help,type,default)
+
+    def getFlag(flagname:str="", default = None):
+        flagname = flagname.lower()
+        if not flagname:
+            dct = {}
+            for k,v in flags.items():
+                dct[k] = v.getVal()
+            unknowns = {}
+            dct["_"] = unknowns
+            for k,v in unregistered_flags.items():
+                unknowns[k] = v.getVal()
+            return dct
+        if flagname in flags:
+            return flags[flagname].getVal()
+        if flagname in unregistered_flags:
+            return unregistered_flags[flagname].getVal()
+        return default
 
 
     @staticmethod
@@ -285,7 +335,14 @@ def library_update():
     print(f"lib version after reload: {getversion()}")   
 
 def print_flag_help():
-    print("flags")
+    global flags
+    if not flags:
+        return
+    from pylib.lib.cli.print import print
+    print("Registered commandline flags:")
+    for x in sorted(flags.keys()):
+        print("-- " + str(flags[x]))
+
 
 def preprocess_sys_argv():
     done = False
@@ -327,6 +384,24 @@ def preprocess_sys_argv():
 def noop():
     pass
 
+def process_flag_vals(flagvals):
+    global flags
+    global unregistered_flags
+    for val in flagvals:
+        if "=" in val:
+            name,val = (x.strip() for x in val.split("="))
+        else:
+            name = val
+            val = True
+        name = name.lower()
+        if name in flags:
+            flags[name].setVal(val)
+        else:
+            f = CLI_Flag(name)
+            f.setVal(val)
+            unregistered_flags[name] = f
+
+
 @tp.callback(invoke_without_command=True)
 def cb(
     version: bool = typer.Option(
@@ -354,7 +429,4 @@ def cb(
     ),
     flag: ant[list[str],typer.Option(help="Flag(s) that are available in code via lib.getFlags(). See --flag --help for list of availables. Pass multiple times for multiple flags.")] = []
 ):
-    #we only need this callback to register the flags above in the cli.
-    #these flags are not processed here, but in the preprocess_argv fn.
-    print(flag)
-    pass
+    process_flag_vals(flag)

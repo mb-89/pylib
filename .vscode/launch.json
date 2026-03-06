@@ -38,8 +38,14 @@
             "python": ".venv/Scripts/python.exe",
             "justMyCode": false,
             "args": [
-                "--help",
-                "--flag"
+                "--flag",
+                "testflag",
+                "--flag",
+                "addtext='bla'",
+                "--flag",
+                "unregistered_bool",
+                "--flag",
+                "unregistered_value=5"
             ],
         }
     ]

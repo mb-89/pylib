@@ -9,7 +9,7 @@ Pylib shall be able to extract itself from a path that it was injected in, to ge
 backlog:
 
 - [TODO] tui / jumpmode ala posting (alt-based instead of ctrl+o)
-- [TODO] implement [flags](feature_flags.md)
+
 
 archive:
 
@@ -22,3 +22,4 @@ archive:
 - [DONE] written docu generator: generate mdbook?
 - [DONE] add imp from git mode -> moved to "notImplementedError"
 - [DONE] tui / compact designs for inputs ala posting
+- [DONE] implement [flags](feature_flags.md)
