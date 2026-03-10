@@ -9,7 +9,7 @@ Pylib shall be able to extract itself from a path that it was injected in, to ge
 backlog:
 
 - [TODO] tui / jumpmode ala posting (alt-based instead of ctrl+o)
-
+- [TODO] implement [cfg](feature_cfg.md)
 
 archive:
 

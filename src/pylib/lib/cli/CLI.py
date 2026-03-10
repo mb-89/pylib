@@ -30,6 +30,7 @@ cmd_default = None
 fnpaths = []
 flags = {}
 unregistered_flags = {}
+run_flaghelp = False
 
 cli_singleton = None
 def get_cli_singleton():
@@ -106,6 +107,9 @@ class CLI:
         if not done:
             for p in fnpaths:
                 cli_singleton.importcmds(p)      
+            if run_flaghelp:
+                print_flag_help()
+                return
 
             if len(argv) == 1: #default if empty
                 cli_singleton.default_fn()
@@ -345,14 +349,14 @@ def print_flag_help():
 
 
 def preprocess_sys_argv():
+    global run_flaghelp
     done = False
     argv = sys.argv
 
     #if help is requested, abort and pass to typer.
     if "-h" in argv or "--help" in argv:
         if "--flag" in argv:
-            print_flag_help()
-            done=True
+            run_flaghelp = True    
         return done, argv
     
     #call history

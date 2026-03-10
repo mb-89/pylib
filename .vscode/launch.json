@@ -39,13 +39,7 @@
             "justMyCode": false,
             "args": [
                 "--flag",
-                "testflag",
-                "--flag",
-                "addtext='bla'",
-                "--flag",
-                "unregistered_bool",
-                "--flag",
-                "unregistered_value=5"
+                "--help"
             ],
         }
     ]
