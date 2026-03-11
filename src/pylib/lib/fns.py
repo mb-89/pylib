@@ -13,3 +13,7 @@ def getlogger():
 def getCLI():
     from pylib.lib.cli.CLI import CLI
     return CLI
+
+def getcfg():
+    from pylib.lib.cfg.cfg import Cfg
+    return Cfg.getSingleton()

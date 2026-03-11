@@ -4,6 +4,8 @@ import subprocess
 import os
 from pathlib import Path
 import shlex
+from functools import cache
+import tempfile
 
 def maybe_async(func):
     """Allow a function to be either awaited or called.
@@ -66,3 +68,19 @@ def mk_win_link(linkname, target, dst=None):
     lnkstr=str(dst/f"{linkname}.lnk").replace("/","\\")
     targetstr=str(target).replace("/","\\")
     subprocess.run(["powershell", "-Command", f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnkstr}'); $s.TargetPath='{targetstr}'; $s.Save();"], capture_output=True)  
+
+_tmpdir = None
+@cache
+def get_temp_dir() -> Path:
+    global _tmpdir
+    _tmpdir = tempfile.TemporaryDirectory()
+    return Path(_tmpdir.name)
+
+def iter_nested_dict(dct,_prefix=[]):
+    for k,v in dct.items():
+        newprefix = _prefix+[k]
+        if isinstance(v,dict):
+            yield from iter_nested_dict(v,_prefix=newprefix)
+        else:
+            yield ("/".join(newprefix), v)
+        
