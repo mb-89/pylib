@@ -6,6 +6,7 @@ from pathlib import Path
 import shlex
 from functools import cache
 import tempfile
+import inspect
 
 def maybe_async(func):
     """Allow a function to be either awaited or called.
@@ -83,4 +84,10 @@ def iter_nested_dict(dct,_prefix=[]):
             yield from iter_nested_dict(v,_prefix=newprefix)
         else:
             yield ("/".join(newprefix), v)
-        
+
+def get_type_by_name(name):
+    tp = __builtins__.get(name,None)
+    if tp is None:
+        f = inspect.currentframe().f_back
+        tp = f.f_globals.get(tp,None)
+    return tp

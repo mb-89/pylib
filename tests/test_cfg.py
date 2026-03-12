@@ -13,4 +13,6 @@ def test_basics():
     cfg.get("key2")
     cfg.get("bla/key2")
     cfg.get("doesnt_exist", -1)
-    
+
+if __name__ == "__main__":
+    test_basics()

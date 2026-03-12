@@ -4,6 +4,7 @@ from lxml import etree as et
 
 from pylib.lib.cfg.src import Sources
 from pylib.lib.fns import getlogger
+from pylib.lib.tools import get_type_by_name
 
 from rich.tree import Tree
 from rich import print as rprint
@@ -46,11 +47,11 @@ class Cfg():
             return default
         #TODO: value casting
         if len(res) == 1:
-            return res[0].text
+            return get_casted_val(res[0])
         if len(res) > 1:
             dct = {}
             for x in res:
-                dct[self.xml.getpath(x)[1:]] = x.text
+                dct[self.xml.getpath(x)[1:]] = get_casted_val(x)
             return dct
 
 
@@ -104,3 +105,10 @@ class Cfg():
                             target = et.SubElement(target,x)
 
                 target.append(xml)
+
+def get_casted_val(x):
+    tp = get_type_by_name(x.attrib["cfg_type"])
+    val = x.text
+    if tp is not None:
+        val = tp(val)
+    return val

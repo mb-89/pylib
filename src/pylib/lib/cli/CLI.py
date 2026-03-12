@@ -10,6 +10,7 @@ from importlib import reload
 import functools
 from collections.abc import Callable
 from pylib.lib.cli import history, dev
+from pylib.lib.tools import get_type_by_name
 
 # note: 
 # for any imports from pylib:
@@ -64,9 +65,7 @@ class CLI_Flag():
     def setVal(self, val):
 
         if self.type:
-            tp = getattr(__builtins__,self.type,None)
-            if tp is None:
-                tp = globals().get(tp,None)
+            tp = get_type_by_name(self.type)
             if tp is not None:
                 try:
                     val = tp(val)
