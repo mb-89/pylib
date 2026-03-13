@@ -103,8 +103,10 @@ class Cfg():
                         target = root
                         for x in (y.strip() for y in parent.split("/")):
                             target = et.SubElement(target,x)
-
+                    else:
+                        target = target[0]
                 target.append(xml)
+        print(et.tostring(root,pretty_print=True).decode("utf-8"))
 
 def get_casted_val(x):
     tp = get_type_by_name(x.attrib["cfg_type"])

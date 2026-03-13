@@ -11,6 +11,7 @@
 - [TODO] every value should know its overrides, and it should be possible to query them
 - [TODO] we should be able to export / display the current state of the config, if possible with reasonable effort, in a tui-tab.
 - [TODO] there should be a watch/callback system that triggers callbacks on cfg changes.
+- [TODO] the config should also load all given commandline flags. this way, we dont have to import cli and cfg in a module that wants to see the flags.
 
 A different approach would have been to go with a sass / css like system. However, after some consideration, it seems that the combination
 of the cascading / inherited values and overrides seems too unintuitive and generating a clean state of the cfg seems too convoluted. 
